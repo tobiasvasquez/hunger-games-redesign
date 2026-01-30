@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { X, Shuffle, Check, Users, Pencil } from "lucide-react"
+import { X, Shuffle, Check, Users, Pencil, Trash2, HelpCircle } from "lucide-react"
 import type { Character, Tribute, District } from "@/lib/game-types"
 import { cn } from "@/lib/utils"
 
@@ -107,6 +107,22 @@ export function TributeSelector({
             </h2>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                // Clear all assignments
+                districts.forEach(district => {
+                  [0, 1].forEach(slot => {
+                    onAssignTribute(district.id, slot, null)
+                  })
+                })
+              }}
+              className="cursor-pointer bg-transparent"
+              title="Quitar todas las asignaciones de personajes"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Limpiar Todo
+            </Button>
             <Button
               variant="outline"
               onClick={onRandomize}

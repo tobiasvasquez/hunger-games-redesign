@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useCallback, useEffect, useMemo } from "react"
-import { Flame, Sun, Moon, Sparkles, Users, UserPlus, History, FileText, MapPin } from "lucide-react"
+import { useState, useCallback, useEffect, useMemo, useRef } from "react"
+import { Flame, Sun, Moon, Sparkles, Users, UserPlus, History, FileText, MapPin, HelpCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DistrictGrid } from "@/components/district-grid"
 import { EventFeed } from "@/components/event-feed"
@@ -17,6 +17,7 @@ import { initializeGame, initializeGameWithCharacters, simulateTurn, advancePhas
 import type { GameState, Character, GameEvent, CustomEventTemplate } from "@/lib/game-types"
 import { getEventTemplates } from "@/lib/event-templates-persistence"
 import { EventTemplateManager } from "@/components/event-template-manager"
+import { GameTutorial } from "@/components/game-tutorial"
 import { setCookie, getCookie } from "@/lib/cookies"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
@@ -77,6 +78,8 @@ function SparklesBackground() {
 export default function HungerGamesSimulator() {
   const [gameState, setGameState] = useState<GameState>(initializeGame)
   const [isSimulating, setIsSimulating] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
+  const [simulationController, setSimulationController] = useState<{ abort: () => void } | null>(null)
   const [characters, setCharacters] = useState<Character[]>([])
   const [showCharacterManager, setShowCharacterManager] = useState(false)
   const [showTributeSelector, setShowTributeSelector] = useState(false)
@@ -84,11 +87,17 @@ export default function HungerGamesSimulator() {
   const [showGameHistory, setShowGameHistory] = useState(false)
   const [showNightSummary, setShowNightSummary] = useState(false)
   const [showEventTemplateManager, setShowEventTemplateManager] = useState(false)
+  const [showTutorial, setShowTutorial] = useState(false)
   const [nightEvents, setNightEvents] = useState<GameEvent[]>([])
   const [isLoadingCharacters, setIsLoadingCharacters] = useState(true)
   const [currentGameId, setCurrentGameId] = useState<string | null>(null)
   const [previousEventCount, setPreviousEventCount] = useState(0)
   const [customEventTemplates, setCustomEventTemplates] = useState<CustomEventTemplate[]>([])
+
+  // Refs for simulation control
+  const pauseRef = useRef<() => void>(() => {})
+  const resumeRef = useRef<() => void>(() => {})
+  const stopRef = useRef<() => void>(() => {})
 
   const supabase = createClient()
 
@@ -326,11 +335,22 @@ export default function HungerGamesSimulator() {
     if (!currentGameId) return
 
     setIsSimulating(true)
-    
+    setIsPaused(false)
+
     let eventCount = previousEventCount
     let currentState = gameState
-    
+    let shouldStop = false
+
     const runSimulation = async (state: GameState): Promise<GameState> => {
+      // Check if simulation was stopped
+      if (shouldStop) return state
+
+      // Wait if paused
+      while (pauseRef.current !== resumeRef.current) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+        if (shouldStop) return state
+      }
+
       if (state.isGameOver) {
         // Save final state
         await updateGame(currentGameId, {
@@ -342,7 +362,7 @@ export default function HungerGamesSimulator() {
         await saveTributes(currentGameId, state.tributes)
         return state
       }
-      
+
       // Simulate turn
       let newState = simulateTurn(state)
       const newEvents = newState.events.slice(eventCount)
@@ -364,7 +384,7 @@ export default function HungerGamesSimulator() {
 
       // Advance phase
       newState = advancePhase(newState)
-      
+
       // Update game state in database
       await updateGame(currentGameId, {
         current_turn: newState.currentTurn,
@@ -372,17 +392,34 @@ export default function HungerGamesSimulator() {
         status: newState.isGameOver ? "finished" : "in_progress",
         winner_id: newState.winner?.id || null,
       })
-      
+
       setGameState(newState)
       currentState = newState
       await new Promise(resolve => setTimeout(resolve, 300))
-      
+
       return runSimulation(newState)
     }
-    
+
+    // Set up control flags
+    const stopHandler = () => { shouldStop = true }
+    const pauseHandler = () => { pauseRef.current = () => {} }
+    const resumeHandler = () => { pauseRef.current = resumeHandler }
+
+    // Initialize refs
+    pauseRef.current = resumeHandler
+    resumeRef.current = resumeHandler
+    stopRef.current = stopHandler
+
     await runSimulation(gameState)
+
+    // Clear refs
+    pauseRef.current = () => {}
+    resumeRef.current = () => {}
+    stopRef.current = () => {}
+
     setPreviousEventCount(eventCount)
     setIsSimulating(false)
+    setIsPaused(false)
   }, [gameState, currentGameId, previousEventCount])
 
   const handleProceedToDay = useCallback(async () => {
@@ -409,6 +446,23 @@ export default function HungerGamesSimulator() {
     })
   }, [currentGameId, gameState])
 
+  const handlePause = useCallback(() => {
+    setIsPaused(true)
+  }, [])
+
+  const handleResume = useCallback(() => {
+    setIsPaused(false)
+  }, [])
+
+  const handleStop = useCallback(() => {
+    if (simulationController) {
+      simulationController.abort()
+    }
+    setIsSimulating(false)
+    setIsPaused(false)
+    setSimulationController(null)
+  }, [simulationController])
+
   const handleReset = useCallback(() => {
     // Reset game state
     let newState: GameState
@@ -420,13 +474,15 @@ export default function HungerGamesSimulator() {
         districts: gameState.districts
       }
     }
-    
+
     setGameState(newState)
     setCurrentGameId(null)
     setPreviousEventCount(0)
     setShowNightSummary(false)
     setNightEvents([])
     setIsSimulating(false)
+    setIsPaused(false)
+    setSimulationController(null)
   }, [characters, gameState.districts])
 
   const aliveTributes = gameState.tributes.filter(t => t.isAlive).length
@@ -450,7 +506,7 @@ export default function HungerGamesSimulator() {
                 <div className="p-2 rounded-full bg-primary/20 border border-primary/30">
                   <Flame className="w-5 h-5 text-primary" />
                 </div>
-                <div>
+                <div data-tutorial="header-title">
                   <h1 className="font-serif text-xl md:text-2xl font-bold text-foreground tracking-wide">
                     Los Juegos del Hambre
                   </h1>
@@ -467,6 +523,7 @@ export default function HungerGamesSimulator() {
                       size="sm"
                       onClick={() => setShowCharacterManager(true)}
                       className="cursor-pointer bg-transparent"
+                      data-tutorial="character-button"
                     >
                       <UserPlus className="w-4 h-4 mr-2" />
                       <span className="hidden sm:inline">Personajes</span>
@@ -477,6 +534,7 @@ export default function HungerGamesSimulator() {
                       size="sm"
                       onClick={() => setShowTributeSelector(true)}
                       className="cursor-pointer bg-transparent"
+                      data-tutorial="tribute-button"
                     >
                       <Users className="w-4 h-4 mr-2" />
                       <span className="hidden sm:inline">Tributos</span>
@@ -518,6 +576,17 @@ export default function HungerGamesSimulator() {
                   <span className="hidden sm:inline">Eventos</span>
                 </Button>
 
+                {/* Tutorial button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowTutorial(true)}
+                  className="cursor-pointer bg-transparent"
+                >
+                  <HelpCircle className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Tutorial</span>
+                </Button>
+
                 {/* Day/Night indicator */}
                 {gameState.gameStarted && (
                   <div className={cn(
@@ -545,14 +614,23 @@ export default function HungerGamesSimulator() {
         {/* Main content */}
         <main className="container mx-auto px-4 py-4 space-y-4">
           {/* Game Controls */}
-          <GameControls
-            gameState={gameState}
-            onStart={handleStart}
-            onSimulateTurn={handleSimulateTurn}
-            onSimulateToEnd={handleSimulateToEnd}
-            onReset={handleReset}
-            isSimulating={isSimulating}
-          />
+          <div data-tutorial="game-controls">
+            <GameControls
+              gameState={gameState}
+              onStart={handleStart}
+              onSimulateTurn={handleSimulateTurn}
+              onSimulateToEnd={handleSimulateToEnd}
+              onPause={handlePause}
+              onResume={handleResume}
+              onStop={handleStop}
+              onReset={handleReset}
+              isSimulating={isSimulating}
+              isPaused={isPaused}
+              pauseRef={pauseRef}
+              resumeRef={resumeRef}
+              stopRef={stopRef}
+            />
+          </div>
 
           {/* Main Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
@@ -567,17 +645,19 @@ export default function HungerGamesSimulator() {
                 </span>
               </div>
               
-              <DistrictGrid
-                tributes={gameState.tributes}
-                districts={gameState.districts}
-                onTributeNameChange={handleTributeNameChange}
-                onDistrictNameChange={handleDistrictNameChange}
-                editable={!gameState.gameStarted}
-              />
+              <div data-tutorial="districts-grid">
+                <DistrictGrid
+                  tributes={gameState.tributes}
+                  districts={gameState.districts}
+                  onTributeNameChange={handleTributeNameChange}
+                  onDistrictNameChange={handleDistrictNameChange}
+                  editable={!gameState.gameStarted}
+                />
+              </div>
             </div>
 
             {/* Event Feed */}
-            <div className="lg:col-span-1 h-[400px] lg:h-auto lg:min-h-[500px]">
+            <div className="lg:col-span-1 h-[400px] lg:h-auto lg:min-h-[500px]" data-tutorial="event-feed">
               <EventFeed
                 events={gameState.events}
                 currentTurn={gameState.currentTurn}
@@ -587,7 +667,9 @@ export default function HungerGamesSimulator() {
           </div>
 
           {/* Fallen Tributes */}
-          <FallenTributes tributes={gameState.tributes} />
+          <div data-tutorial="fallen-tributes">
+            <FallenTributes tributes={gameState.tributes} />
+          </div>
         </main>
 
         {/* Footer */}
@@ -667,6 +749,11 @@ export default function HungerGamesSimulator() {
             }))
           }}
         />
+      )}
+
+      {/* Tutorial Modal */}
+      {showTutorial && (
+        <GameTutorial onClose={() => setShowTutorial(false)} />
       )}
     </div>
   )

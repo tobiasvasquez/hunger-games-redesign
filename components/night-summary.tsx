@@ -77,42 +77,74 @@ export function NightSummary({
               <p className="text-sm mt-2">Todos los tributos sobrevivieron esta noche</p>
             </div>
           ) : (
-            <div className="space-y-6">
-              {/* Kill Events - Highlighted */}
+            <div className="space-y-8">
+              {/* Kill Events - Prominently Displayed */}
               {killEvents.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Skull className="w-5 h-5 text-red-500" />
-                    <h3 className="font-serif text-lg font-bold text-foreground">
-                      Eliminaciones ({killEvents.length})
-                    </h3>
+                <div className="bg-red-950/20 border border-red-500/30 rounded-xl p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 rounded-full bg-red-500/20 border border-red-500/30">
+                      <Skull className="w-6 h-6 text-red-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-serif text-xl font-bold text-red-400">
+                        Caídos en la Noche
+                      </h3>
+                      <p className="text-sm text-red-300/80">
+                        {killEvents.length} tributo{killEvents.length !== 1 ? 's' : ''} eliminado{killEvents.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {killEvents.map((event) => (
                       <div
                         key={event.id}
-                        className="p-4 rounded-lg border-l-4 border-red-500 bg-red-500/10"
+                        className="p-4 rounded-lg border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 transition-colors"
                       >
-                        <p className="text-sm text-foreground font-medium">
-                          {event.description}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(event.timestamp).toLocaleTimeString()}
-                        </p>
+                        <div className="flex items-start gap-3">
+                          <div className="p-1.5 rounded-full bg-red-500/20 mt-0.5">
+                            <Skull className="w-4 h-4 text-red-400" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm text-foreground font-medium leading-relaxed">
+                              {event.description}
+                            </p>
+                            <p className="text-xs text-red-300/60 mt-2">
+                              {new Date(event.timestamp).toLocaleTimeString()}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
+              {/* Divider */}
+              {killEvents.length > 0 && otherEvents.length > 0 && (
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
+                  <div className="px-4 py-2 bg-card/50 border border-border/50 rounded-full">
+                    <span className="text-xs text-muted-foreground font-medium">Otros Eventos</span>
+                  </div>
+                  <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
+                </div>
+              )}
+
               {/* Other Events */}
               {otherEvents.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Moon className="w-5 h-5 text-indigo-400" />
-                    <h3 className="font-serif text-lg font-bold text-foreground">
-                      Otros Eventos ({otherEvents.length})
-                    </h3>
+                <div className="bg-card/30 border border-border/50 rounded-xl p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 rounded-full bg-indigo-500/20 border border-indigo-500/30">
+                      <Moon className="w-6 h-6 text-indigo-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-serif text-xl font-bold text-foreground">
+                        Eventos Nocturnos
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {otherEvents.length} evento{otherEvents.length !== 1 ? 's' : ''} ocurrido{otherEvents.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
                   </div>
                   <div className="bg-card/50 border border-border/50 rounded-lg overflow-hidden">
                     <div className="p-4 max-h-96 overflow-y-auto">

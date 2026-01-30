@@ -1,4 +1,4 @@
-import type { Tribute, GameEvent, GameState, District } from "./game-types"
+import type { Tribute, GameEvent, GameState, District, CustomEventTemplate } from "./game-types"
 import { DEFAULT_TRIBUTE_NAMES, AVATAR_COLORS, DISTRICT_NAMES, DISTRICT_COLORS } from "./game-types"
 
 const DEFAULT_DISTRICTS: District[] = Array.from({ length: 12 }, (_, i) => ({
@@ -103,14 +103,16 @@ export function simulateTurn(state: GameState): GameState {
   const newEvents: GameEvent[] = []
   
   // Load event templates from database (all templates, including defaults)
-  if (!newState.customEventTemplates || newState.customEventTemplates.length === 0) {
-    // No templates loaded yet, return state without events
-    console.warn("No event templates loaded. Please ensure templates are loaded from database.")
-    return newState
+  let templatesToUse = newState.customEventTemplates || []
+
+  // Fallback to hardcoded templates if database is empty
+  if (templatesToUse.length === 0) {
+    console.warn("No event templates loaded from database. Using fallback templates.")
+    templatesToUse = getFallbackEventTemplates()
   }
-  
+
   const currentPhase = newState.currentPhase
-  const availableTemplates = newState.customEventTemplates.filter(
+  const availableTemplates = templatesToUse.filter(
     t => t.phase === currentPhase || t.phase === "both"
   )
   
@@ -145,7 +147,27 @@ export function simulateTurn(state: GameState): GameState {
     const eventCategory = getRandomElement(eventPoolArray)
     const template = getRandomElement(eventCategory.templates)
     
-    if (eventCategory.type === "kill" && newState.currentPhase === "night") {
+    if (eventCategory.type === "kill") {
+      // Check if this is a deadly single-tribute event (no killer/victim placeholders)
+      if (!template.includes("{killer}") && !template.includes("{victim}")) {
+        // Instant death event for single tribute
+        const tributeInState = newState.tributes.find(t => t.id === tribute.id)
+        if (tributeInState) {
+          tributeInState.isAlive = false
+
+          newEvents.push({
+            id: generateUUID(),
+            turn: newState.currentTurn,
+            phase: newState.currentPhase,
+            type: "kill",
+            description: template.replace("{tribute}", tribute.name),
+            involvedTributes: [tribute.id],
+            timestamp: new Date(),
+          })
+
+          processedTributes.add(tribute.id)
+        }
+      } else if (newState.currentPhase === "night") {
       // Find a valid victim (not from same district, still alive)
       const validVictims = aliveTributes.filter(
         t => t.id !== tribute.id && t.district !== tribute.district && t.isAlive && !processedTributes.has(t.id)
@@ -178,6 +200,7 @@ export function simulateTurn(state: GameState): GameState {
           processedTributes.add(tribute.id)
           processedTributes.add(victim.id)
         }
+      }
       }
     } else if (eventCategory.type === "alliance" && template.includes("{tribute2}")) {
       const validAllies = aliveTributes.filter(
@@ -362,13 +385,39 @@ export function simulateTurn(state: GameState): GameState {
 
 export function advancePhase(state: GameState): GameState {
   const newState = { ...state }
-  
+
   if (newState.currentPhase === "day") {
     newState.currentPhase = "night"
   } else {
     newState.currentPhase = "day"
     newState.currentTurn += 1
   }
-  
+
   return newState
+}
+
+// Fallback event templates when database is not available
+function getFallbackEventTemplates(): CustomEventTemplate[] {
+  return [
+    // Day events
+    { id: "1", template: "{tribute} explora el bosque en busca de recursos.", type: "neutral", phase: "day", requiresKiller: false, requiresVictim: false, requiresTwoTributes: false },
+    { id: "2", template: "{tribute} encuentra una cueva segura para refugiarse.", type: "shelter", phase: "day", requiresKiller: false, requiresVictim: false, requiresTwoTributes: false },
+    { id: "3", template: "{tribute} recibe un paquete de patrocinadores con comida.", type: "sponsor", phase: "day", requiresKiller: false, requiresVictim: false, requiresTwoTributes: false },
+    { id: "4", template: "{tribute} se lesiona al caer de un árbol.", type: "injury", phase: "day", requiresKiller: false, requiresVictim: false, requiresTwoTributes: false },
+    { id: "5", template: "{tribute1} y {tribute2} forman una alianza temporal.", type: "alliance", phase: "day", requiresKiller: false, requiresVictim: false, requiresTwoTributes: true },
+    { id: "6", template: "{tribute} descubre una cornucopia abandonada con suministros.", type: "exploration", phase: "day", requiresKiller: false, requiresVictim: false, requiresTwoTributes: false },
+    { id: "7", template: "{tribute1} roba suministros de {tribute2} mientras duerme.", type: "theft", phase: "day", requiresKiller: false, requiresVictim: false, requiresTwoTributes: true },
+    { id: "8", template: "{tribute} es atacado por un lobo mutante y no sobrevive.", type: "kill", phase: "day", requiresKiller: false, requiresVictim: false, requiresTwoTributes: false },
+
+    // Night events
+    { id: "9", template: "{killer} embosca a {victim} mientras dormía. {victim} ha caído.", type: "kill", phase: "night", requiresKiller: true, requiresVictim: true, requiresTwoTributes: false },
+    { id: "10", template: "{tribute} activa una trampa del Capitolio pero logra escapar herido/a.", type: "trap", phase: "night", requiresKiller: false, requiresVictim: false, requiresTwoTributes: false },
+    { id: "11", template: "{tribute} escucha pasos y huye justo a tiempo.", type: "escape", phase: "night", requiresKiller: false, requiresVictim: false, requiresTwoTributes: false },
+    { id: "12", template: "{tribute} no puede dormir pensando en su familia.", type: "neutral", phase: "night", requiresKiller: false, requiresVictim: false, requiresTwoTributes: false },
+    { id: "13", template: "{tribute1} traiciona a {tribute2} y roba sus suministros.", type: "betrayal", phase: "night", requiresKiller: false, requiresVictim: false, requiresTwoTributes: true },
+    { id: "14", template: "{tribute1} roba suministros de {tribute2} mientras duerme.", type: "theft", phase: "night", requiresKiller: false, requiresVictim: false, requiresTwoTributes: true },
+    { id: "15", template: "{tribute1} y {tribute2} forman una alianza nocturna.", type: "alliance", phase: "night", requiresKiller: false, requiresVictim: false, requiresTwoTributes: true },
+    { id: "16", template: "{tribute} se lesiona al tropezar en la oscuridad.", type: "injury", phase: "night", requiresKiller: false, requiresVictim: false, requiresTwoTributes: false },
+    { id: "17", template: "{tribute} es devorado por mutos hambrientos en la oscuridad.", type: "kill", phase: "night", requiresKiller: false, requiresVictim: false, requiresTwoTributes: false },
+  ]
 }

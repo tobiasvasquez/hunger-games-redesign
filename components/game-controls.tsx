@@ -1,6 +1,6 @@
 "use client"
 
-import { Play, RotateCcw, FastForward, SkipForward, Sun, Moon, Trophy, Users, Skull } from "lucide-react"
+import { Play, RotateCcw, FastForward, SkipForward, Sun, Moon, Trophy, Users, Skull, Pause, Square } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { GameState } from "@/lib/game-types"
 import { cn } from "@/lib/utils"
@@ -10,8 +10,15 @@ interface GameControlsProps {
   onStart: () => void
   onSimulateTurn: () => void
   onSimulateToEnd: () => void
+  onPause: () => void
+  onResume: () => void
+  onStop: () => void
   onReset: () => void
   isSimulating: boolean
+  isPaused: boolean
+  pauseRef: React.MutableRefObject<() => void>
+  resumeRef: React.MutableRefObject<() => void>
+  stopRef: React.MutableRefObject<() => void>
 }
 
 export function GameControls({
@@ -19,8 +26,15 @@ export function GameControls({
   onStart,
   onSimulateTurn,
   onSimulateToEnd,
+  onPause,
+  onResume,
+  onStop,
   onReset,
   isSimulating,
+  isPaused,
+  pauseRef,
+  resumeRef,
+  stopRef,
 }: GameControlsProps) {
   const aliveTributes = gameState.tributes.filter(t => t.isAlive)
   const deadTributes = gameState.tributes.filter(t => !t.isAlive)
@@ -102,15 +116,56 @@ export function GameControls({
               Siguiente Fase
             </Button>
             
-            <Button
-              onClick={onSimulateToEnd}
-              disabled={gameState.isGameOver || isSimulating}
-              variant="secondary"
-              className="cursor-pointer disabled:cursor-not-allowed"
-            >
-              <FastForward className="w-4 h-4 mr-2" />
-              Simular Todo
-            </Button>
+            {isSimulating ? (
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    if (isPaused) {
+                      onResume()
+                      resumeRef.current()
+                    } else {
+                      onPause()
+                      pauseRef.current()
+                    }
+                  }}
+                  variant="secondary"
+                  className="cursor-pointer"
+                >
+                  {isPaused ? (
+                    <>
+                      <Play className="w-4 h-4 mr-2" />
+                      Reanudar
+                    </>
+                  ) : (
+                    <>
+                      <Pause className="w-4 h-4 mr-2" />
+                      Pausar
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={() => {
+                    onStop()
+                    stopRef.current()
+                  }}
+                  variant="destructive"
+                  className="cursor-pointer"
+                >
+                  <Square className="w-4 h-4 mr-2" />
+                  Detener
+                </Button>
+              </div>
+            ) : (
+              <Button
+                onClick={onSimulateToEnd}
+                disabled={gameState.isGameOver}
+                variant="secondary"
+                className="cursor-pointer disabled:cursor-not-allowed"
+              >
+                <FastForward className="w-4 h-4 mr-2" />
+                Simular Todo
+              </Button>
+            )}
           </>
         )}
         
