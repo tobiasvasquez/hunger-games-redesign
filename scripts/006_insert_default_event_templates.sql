@@ -59,6 +59,19 @@ INSERT INTO event_templates (template, type, phase, requires_killer, requires_vi
 ('{tribute} desarrolla una infección en una herida menor.', 'injury', 'day', false, false, false, false),
 ('{tribute} se deshidrata y se siente débil.', 'injury', 'day', false, false, false, false);
 
+-- Deadly Events (Día) - High chance of instant death
+INSERT INTO event_templates (template, type, phase, requires_killer, requires_victim, requires_two_tributes, is_custom) VALUES
+('{tribute} es atacado por un lobo mutante y no sobrevive.', 'kill', 'day', false, false, false, false),
+('{tribute} cae en un pozo de fuego del Capitolio. El cañón suena.', 'kill', 'day', false, false, false, false),
+('{tribute} come setas venenosas por error y muere en agonía.', 'kill', 'day', false, false, false, false),
+('{tribute} es aplastado por una avalancha provocada por el Capitolio.', 'kill', 'day', false, false, false, false),
+('{tribute} es picado por serpientes venenosas y sucumbe rápidamente.', 'kill', 'day', false, false, false, false),
+('{tribute} activa una mina terrestre del Capitolio y es despedazado.', 'kill', 'day', false, false, false, false),
+('{tribute} bebe agua contaminada y muere de envenenamiento.', 'kill', 'day', false, false, false, false),
+('{tribute} es alcanzado por un rayo láser del Capitolio.', 'kill', 'day', false, false, false, false),
+('{tribute} es devorado por un oso mutante hambriento.', 'kill', 'day', false, false, false, false),
+('{tribute} cae desde un acantilado mientras huye de otros tributos.', 'kill', 'day', false, false, false, false);
+
 -- Alliance (Día)
 INSERT INTO event_templates (template, type, phase, requires_killer, requires_victim, requires_two_tributes, is_custom) VALUES
 ('{tribute1} y {tribute2} forman una alianza temporal.', 'alliance', 'day', false, false, true, false),
@@ -182,3 +195,16 @@ INSERT INTO event_templates (template, type, phase, requires_killer, requires_vi
 ('{tribute} se lastima al caer mientras intenta escapar.', 'injury', 'night', false, false, false, false),
 ('{tribute} se quema con una fuente de calor del Capitolio.', 'injury', 'night', false, false, false, false),
 ('{tribute} se lastima al chocar contra algo en la oscuridad.', 'injury', 'night', false, false, false, false);
+
+-- Deadly Events (Noche) - High chance of instant death
+INSERT INTO event_templates (template, type, phase, requires_killer, requires_victim, requires_two_tributes, is_custom) VALUES
+('{tribute} es devorado por mutos hambrientos en la oscuridad.', 'kill', 'night', false, false, false, false),
+('{tribute} activa una trampa explosiva del Capitolio durante la noche.', 'kill', 'night', false, false, false, false),
+('{tribute} es alcanzado por un rayo láser del Capitolio mientras duerme.', 'kill', 'night', false, false, false, false),
+('{tribute} bebe agua envenenada de una fuente del Capitolio.', 'kill', 'night', false, false, false, false),
+('{tribute} es aplastado por rocas que caen de una trampa del Capitolio.', 'kill', 'night', false, false, false, false),
+('{tribute} es atacado por un jaguar mutante y despedazado.', 'kill', 'night', false, false, false, false),
+('{tribute} inhala gas venenoso liberado por el Capitolio.', 'kill', 'night', false, false, false, false),
+('{tribute} cae en un foso de ácido del Capitolio.', 'kill', 'night', false, false, false, false),
+('{tribute} es electrocutado por cables de alta tensión del Capitolio.', 'kill', 'night', false, false, false, false),
+('{tribute} es atacado por un enjambre de avispas mutantes venenosas.', 'kill', 'night', false, false, false, false);

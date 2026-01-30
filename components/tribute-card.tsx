@@ -63,7 +63,7 @@ export function TributeCard({ tribute, onNameChange, editable = false }: Tribute
                 <>
                   {statusIcon[tribute.status]}
                   <span className="text-[10px] text-muted-foreground">
-                    {tribute.health}%
+                    {Math.round((tribute.health / 60) * 100)}%
                   </span>
                   {tribute.kills > 0 && (
                     <span className="text-[10px] text-accent flex items-center gap-0.5">
@@ -88,10 +88,10 @@ export function TributeCard({ tribute, onNameChange, editable = false }: Tribute
             <div
               className={cn(
                 "h-full transition-all duration-500",
-                tribute.health > 70 ? "bg-emerald-500" :
-                tribute.health > 40 ? "bg-amber-500" : "bg-red-500"
+                tribute.health > 42 ? "bg-emerald-500" :
+                tribute.health > 24 ? "bg-amber-500" : "bg-red-500"
               )}
-              style={{ width: `${tribute.health}%` }}
+              style={{ width: `${Math.round((tribute.health / 60) * 100)}%` }}
             />
           </div>
         )}
