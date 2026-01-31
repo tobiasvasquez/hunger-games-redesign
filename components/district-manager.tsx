@@ -84,11 +84,28 @@ export function DistrictManager({
           </Button>
         </div>
 
-        {/* Info */}
+        {/* Add District */}
         <div className="p-4 border-b border-border bg-secondary/30">
-          <p className="text-sm text-muted-foreground">
-            Personaliza los nombres de los 12 distritos. Los cambios se aplicarán al iniciar un nuevo juego.
-          </p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm text-muted-foreground">
+              Gestiona los distritos del Capitolio. Puedes agregar, eliminar y personalizar distritos según necesites.
+            </p>
+            <Button
+              onClick={() => {
+                const newId = Math.max(...localDistricts.map(d => d.id), 0) + 1
+                const newDistrict: District = {
+                  id: newId,
+                  name: `Distrito ${newId}`,
+                  color: DISTRICT_COLORS[newId] || "bg-gray-500/10 border-gray-500/30"
+                }
+                setLocalDistricts(prev => [...prev, newDistrict])
+              }}
+              className="cursor-pointer bg-primary hover:bg-primary/90"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Agregar Distrito
+            </Button>
+          </div>
         </div>
 
         {/* Districts List */}
@@ -97,7 +114,7 @@ export function DistrictManager({
             {localDistricts.map((district) => (
               <div
                 key={district.id}
-                className={cn("p-3 rounded-lg border", district.color)}
+                className={cn("p-3 rounded-lg border relative group", district.color)}
               >
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded shrink-0">
@@ -109,6 +126,15 @@ export function DistrictManager({
                     className="flex-1 text-sm h-8"
                     placeholder={`Distrito ${district.id}`}
                   />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setLocalDistricts(prev => prev.filter(d => d.id !== district.id))}
+                    disabled={localDistricts.length <= 1}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-destructive/20 hover:text-destructive w-6 h-6"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
                 </div>
                 <div className="flex items-center gap-2">
                   <Palette className="w-4 h-4 text-muted-foreground" />

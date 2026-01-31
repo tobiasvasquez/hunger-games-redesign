@@ -5,9 +5,24 @@ export interface Character {
   created_at?: string
 }
 
-export interface Grudge {
-  targetId: string
+export interface Ally {
+  allyId: string
   reason: string
+}
+
+export interface InventoryItem {
+  id: string
+  type: "weapon" | "medkit" | "food" | "armor" | "tool"
+  name: string
+  description: string
+  uses: number // How many times it can be used
+  maxUses: number // Maximum uses
+  effect: {
+    health?: number // Healing amount
+    damage?: number // Damage bonus
+    protection?: number // Damage reduction
+    luck?: number // Luck modifier
+  }
 }
 
 export interface Tribute {
@@ -22,7 +37,8 @@ export interface Tribute {
   kills: number
   health: number
   status: "healthy" | "injured" | "critical"
-  grudges: Grudge[] // Grudges with target IDs and reasons
+  allies: Ally[] // Allies with ally IDs and reasons
+  inventory: InventoryItem[] // Items received from sponsors
 }
 
 export type EventType = "kill" | "sponsor" | "shelter" | "injury" | "alliance" | "trap" | "escape" | "neutral" | "betrayal" | "theft" | "exploration"
@@ -53,9 +69,17 @@ export interface District {
   color: string
 }
 
+export interface Sponsor {
+  id: string
+  name: string
+  wealth: number // How generous they are (affects drop rates)
+  favoriteTributes: string[] // Tribute IDs they prefer to sponsor
+}
+
 export interface GameState {
   tributes: Tribute[]
   districts: District[]
+  sponsors: Sponsor[]
   events: GameEvent[]
   currentTurn: number
   currentPhase: "day" | "night"

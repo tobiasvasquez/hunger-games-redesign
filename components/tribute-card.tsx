@@ -2,18 +2,19 @@
 
 import { useState, useRef, useEffect } from "react"
 import { createPortal } from "react-dom"
-import { Skull, Heart, AlertTriangle, Shield, Angry, Target } from "lucide-react"
+import { Skull, Heart, AlertTriangle, Shield, Angry, Target, Sword, Cross, Apple, Shield as ShieldIcon, Wrench } from "lucide-react"
 import type { Tribute } from "@/lib/game-types"
 import { cn } from "@/lib/utils"
 
 interface TributeCardProps {
   tribute: Tribute
-  allTributes?: Tribute[] // To check if this tribute is targeted by grudges
+  allTributes?: Tribute[] // To show ally information
   onNameChange?: (name: string) => void
+  onUseItem?: (tributeId: string, itemId: string, targetId?: string) => void
   editable?: boolean
 }
 
-export function TributeCard({ tribute, allTributes = [], onNameChange, editable = false }: TributeCardProps) {
+export function TributeCard({ tribute, allTributes = [], onNameChange, onUseItem, editable = false }: TributeCardProps) {
   const [showTooltip, setShowTooltip] = useState(false)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
   const cardRef = useRef<HTMLDivElement>(null)
@@ -24,31 +25,34 @@ export function TributeCard({ tribute, allTributes = [], onNameChange, editable 
     critical: <Skull className="w-3 h-3 text-red-400" />,
   }
 
-  // Check if this tribute is targeted by someone else's grudge
-  const isTargeted = allTributes.some(otherTribute =>
-    otherTribute.isAlive && otherTribute.grudges.some(g => g.targetId === tribute.id)
-  )
+  // Check if this tribute is allied with others
+  const hasAllies = tribute.allies.length > 0
 
-  // Get names of tributes who have grudges against this one
-  const grudgeHolders = allTributes
-    .filter(otherTribute => otherTribute.isAlive && otherTribute.grudges.some(g => g.targetId === tribute.id))
-    .map(t => t.name)
-
-  // Convert grudge IDs to names with reasons for the tooltip
-  const grudgeTargetNames = tribute.grudges
-    .map(grudge => {
-      const targetName = allTributes.find(t => t.id === grudge.targetId)?.name
-      return targetName ? `${targetName} (${grudge.reason})` : null
+  // Get names of tributes who are allies
+  const allyNames = tribute.allies
+    .map(ally => {
+      const allyName = allTributes.find(t => t.id === ally.allyId)?.name
+      return allyName ? `${allyName} (${ally.reason})` : null
     })
     .filter(name => name) // Remove undefined names
     .join(', ')
 
   // Determine tooltip content
-  const tooltipContent = isTargeted && tribute.isAlive
-    ? `¡Peligro! ${grudgeHolders.join(', ')} ${grudgeHolders.length === 1 ? 'tiene' : 'tienen'} rencor contra ti`
-    : tribute.grudges.length > 0
-    ? `Tiene rencor contra: ${grudgeTargetNames}`
+  const tooltipContent = hasAllies
+    ? `Aliados: ${allyNames}`
     : null
+
+  // Get icon for item type
+  const getItemIcon = (type: string) => {
+    switch (type) {
+      case "weapon": return <Sword className="w-2.5 h-2.5" />
+      case "medkit": return <Cross className="w-2.5 h-2.5" />
+      case "food": return <Apple className="w-2.5 h-2.5" />
+      case "armor": return <ShieldIcon className="w-2.5 h-2.5" />
+      case "tool": return <Wrench className="w-2.5 h-2.5" />
+      default: return <Target className="w-2.5 h-2.5" />
+    }
+  }
 
   // Update tooltip position when showing
   useEffect(() => {
@@ -61,8 +65,7 @@ export function TributeCard({ tribute, allTributes = [], onNameChange, editable 
     }
   }, [showTooltip])
 
-  // Debug - remove after confirming tooltips work
-  // console.log(`Tooltip for ${tribute.name}: isTargeted=${isTargeted}, grudges=${tribute.grudges.length}, content="${tooltipContent}"`)
+
 
   return (
     <div
@@ -101,7 +104,7 @@ export function TributeCard({ tribute, allTributes = [], onNameChange, editable 
       <div
         className={cn(
           "relative p-2 bg-secondary/50 border border-border/30 rounded-md transition-all duration-300",
-          isTargeted && tribute.isAlive && "border-red-400/50 shadow-lg shadow-red-400/20 bg-red-950/10"
+          hasAllies && tribute.isAlive && "border-green-400/50 shadow-lg shadow-green-400/20 bg-green-950/10"
         )}
       >
         {/* Avatar + Info Row */}
@@ -149,16 +152,10 @@ export function TributeCard({ tribute, allTributes = [], onNameChange, editable 
                       {tribute.kills}
                     </span>
                   )}
-                  {tribute.grudges.length > 0 && (
-                    <span className="text-[10px] text-red-400 flex items-center gap-0.5">
-                      <Angry className="w-2.5 h-2.5" />
-                      {tribute.grudges.length}
-                    </span>
-                  )}
-                  {isTargeted && tribute.isAlive && (
-                    <span className="text-[10px] text-orange-400 flex items-center gap-0.5 animate-pulse">
-                      <Target className="w-2.5 h-2.5" />
-                      ¡Objetivo!
+                  {hasAllies && (
+                    <span className="text-[10px] text-green-400 flex items-center gap-0.5">
+                      <Heart className="w-2.5 h-2.5" />
+                      {tribute.allies.length}
                     </span>
                   )}
                 </>
@@ -172,6 +169,32 @@ export function TributeCard({ tribute, allTributes = [], onNameChange, editable 
           </div>
         </div>
         
+        {/* Inventory */}
+        {tribute.isAlive && tribute.inventory.length > 0 && (
+          <div className="mt-1.5 flex flex-wrap gap-0.5">
+            {tribute.inventory.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => onUseItem?.(tribute.id, item.id)}
+                className={cn(
+                  "px-1 py-0.5 text-[8px] rounded border transition-colors",
+                  item.type === "weapon" && "bg-red-500/20 border-red-500/50 text-red-300 hover:bg-red-500/30",
+                  item.type === "medkit" && "bg-blue-500/20 border-blue-500/50 text-blue-300 hover:bg-blue-500/30",
+                  item.type === "food" && "bg-green-500/20 border-green-500/50 text-green-300 hover:bg-green-500/30",
+                  item.type === "armor" && "bg-yellow-500/20 border-yellow-500/50 text-yellow-300 hover:bg-yellow-500/30",
+                  item.type === "tool" && "bg-purple-500/20 border-purple-500/50 text-purple-300 hover:bg-purple-500/30"
+                )}
+                title={`${item.name}: ${item.description} (${item.uses}/${item.maxUses} usos)`}
+              >
+                <div className="flex items-center gap-0.5">
+                  {getItemIcon(item.type)}
+                  <span className="text-[6px] leading-none">{item.uses}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Health bar */}
         {tribute.isAlive && (
           <div className="mt-1.5 h-0.5 bg-muted rounded-full overflow-hidden">

@@ -1,4 +1,4 @@
-import type { Tribute, GameEvent, GameState, District, CustomEventTemplate, Grudge } from "./game-types"
+import type { Tribute, GameEvent, GameState, District, CustomEventTemplate, Ally, InventoryItem, Sponsor } from "./game-types"
 import { DEFAULT_TRIBUTE_NAMES, AVATAR_COLORS, DISTRICT_NAMES, DISTRICT_COLORS } from "./game-types"
 
 const DEFAULT_DISTRICTS: District[] = Array.from({ length: 12 }, (_, i) => ({
@@ -18,30 +18,152 @@ function generateUUID(): string {
   return Math.random().toString(36).substring(2, 15)
 }
 
-export function initializeGame(): GameState {
+// Available sponsor items
+const SPONSOR_ITEMS: InventoryItem[] = [
+  // Weapons
+  {
+    id: "sword",
+    type: "weapon",
+    name: "Espada",
+    description: "Una espada afilada para combate",
+    uses: 3,
+    maxUses: 3,
+    effect: { damage: 25 }
+  },
+  {
+    id: "bow",
+    type: "weapon",
+    name: "Arco",
+    description: "Un arco con flechas para ataques a distancia",
+    uses: 3,
+    maxUses: 3,
+    effect: { damage: 20, luck: 0.1 }
+  },
+  {
+    id: "axe",
+    type: "weapon",
+    name: "Hacha",
+    description: "Un hacha poderosa pero difícil de usar",
+    uses: 3,
+    maxUses: 3,
+    effect: { damage: 35, luck: -0.1 }
+  },
+  // Medkits
+  {
+    id: "medkit",
+    type: "medkit",
+    name: "Botiquín",
+    description: "Kit médico para curar heridas",
+    uses: 1,
+    maxUses: 1,
+    effect: { health: 40 }
+  },
+  {
+    id: "bandages",
+    type: "medkit",
+    name: "Vendajes",
+    description: "Vendajes para heridas menores",
+    uses: 2,
+    maxUses: 2,
+    effect: { health: 20 }
+  },
+  // Food
+  {
+    id: "bread",
+    type: "food",
+    name: "Pan",
+    description: "Pan fresco que restaura energía",
+    uses: 1,
+    maxUses: 1,
+    effect: { health: 15 }
+  },
+  {
+    id: "fruit",
+    type: "food",
+    name: "Fruta",
+    description: "Fruta fresca nutritiva",
+    uses: 1,
+    maxUses: 1,
+    effect: { health: 10 }
+  },
+  // Armor
+  {
+    id: "helmet",
+    type: "armor",
+    name: "Casco",
+    description: "Protección para la cabeza",
+    uses: 5,
+    maxUses: 5,
+    effect: { protection: 15 }
+  },
+  {
+    id: "vest",
+    type: "armor",
+    name: "Chaleco",
+    description: "Chaleco protector",
+    uses: 3,
+    maxUses: 3,
+    effect: { protection: 20 }
+  },
+  // Tools
+  {
+    id: "rope",
+    type: "tool",
+    name: "Cuerda",
+    description: "Útil para escalar y atrapar",
+    uses: 2,
+    maxUses: 2,
+    effect: { luck: 0.15 }
+  },
+  {
+    id: "knife",
+    type: "weapon",
+    name: "Cuchillo",
+    description: "Cuchillo pequeño pero letal",
+    uses: 5,
+    maxUses: 5,
+    effect: { damage: 15 }
+  }
+]
+
+// Default sponsors from the Capitol
+const DEFAULT_SPONSORS: Sponsor[] = [
+  { id: "snow", name: "Presidente Snow", wealth: 10, favoriteTributes: [] },
+  { id: "crane", name: "Senador Crane", wealth: 8, favoriteTributes: [] },
+  { id: "heavensbee", name: "Senador Heavensbee", wealth: 7, favoriteTributes: [] },
+  { id: "merchant", name: "Comerciante Rico", wealth: 6, favoriteTributes: [] },
+  { id: "gamemaker", name: "Creador de Juegos", wealth: 9, favoriteTributes: [] },
+  { id: "stylist", name: "Estilista Principal", wealth: 5, favoriteTributes: [] },
+  { id: "broadcaster", name: "Locutor", wealth: 4, favoriteTributes: [] },
+  { id: "noble", name: "Noble Capitolino", wealth: 6, favoriteTributes: [] },
+]
+
+export function initializeGame(sponsors: Sponsor[] = DEFAULT_SPONSORS, districts: District[] = DEFAULT_DISTRICTS): GameState {
   const tributes: Tribute[] = []
-  
-  for (let district = 1; district <= 12; district++) {
+
+  districts.forEach((district, districtIndex) => {
     for (let slot = 0; slot < 2; slot++) {
-      const index = (district - 1) * 2 + slot
+      const tributeIndex = districtIndex * 2 + slot
       tributes.push({
         id: generateUUID(),
-        name: DEFAULT_TRIBUTE_NAMES[index],
-        district,
+        name: DEFAULT_TRIBUTE_NAMES[tributeIndex] || `Tributo ${district.id}-${slot + 1}`,
+        district: district.id,
         slot,
-        avatar: AVATAR_COLORS[district - 1],
+        avatar: AVATAR_COLORS[districtIndex % AVATAR_COLORS.length],
         isAlive: true,
         kills: 0,
         health: 60,
         status: "healthy",
-        grudges: [] as Grudge[],
+        allies: [] as Ally[],
+        inventory: [] as InventoryItem[],
       })
     }
-  }
+  })
 
   return {
     tributes,
-    districts: DEFAULT_DISTRICTS,
+    districts,
+    sponsors,
     events: [],
     currentTurn: 0,
     currentPhase: "day",
@@ -53,36 +175,39 @@ export function initializeGame(): GameState {
 
 export function initializeGameWithCharacters(
   characters: { id: string; name: string; image_url?: string }[],
-  customDistricts?: District[]
+  customDistricts?: District[],
+  sponsors?: Sponsor[]
 ): GameState {
   const tributes: Tribute[] = []
   const shuffled = [...characters].sort(() => Math.random() - 0.5)
   const districts = customDistricts || DEFAULT_DISTRICTS
-  
-  for (let district = 1; district <= 12; district++) {
+
+  districts.forEach((district, districtIndex) => {
     for (let slot = 0; slot < 2; slot++) {
-      const index = (district - 1) * 2 + slot
-      const char = shuffled[index]
+      const tributeIndex = districtIndex * 2 + slot
+      const char = shuffled[tributeIndex]
       tributes.push({
         id: generateUUID(),
-        name: char?.name || DEFAULT_TRIBUTE_NAMES[index],
-        district,
+        name: char?.name || DEFAULT_TRIBUTE_NAMES[tributeIndex] || `Tributo ${district.id}-${slot + 1}`,
+        district: district.id,
         slot,
-        avatar: AVATAR_COLORS[district - 1],
+        avatar: AVATAR_COLORS[districtIndex % AVATAR_COLORS.length],
         imageUrl: char?.image_url,
         characterId: char?.id,
         isAlive: true,
         kills: 0,
         health: 60,
         status: "healthy",
-        grudges: [],
+        allies: [],
+        inventory: [],
       })
     }
-  }
+  })
 
   return {
     tributes,
     districts,
+    sponsors: sponsors || DEFAULT_SPONSORS,
     events: [],
     currentTurn: 0,
     currentPhase: "day",
@@ -175,17 +300,7 @@ export function simulateTurn(state: GameState): GameState {
         t => t.id !== tribute.id && t.district !== tribute.district && t.isAlive && !processedTributes.has(t.id)
       )
 
-      // REVENGE SYSTEM: Prioritize victims that have previously attacked this tribute
-      const revengeTargets = validVictims.filter(v => tribute.grudges.some(g => g.targetId === v.id))
-      let victim
-
-      if (revengeTargets.length > 0 && Math.random() > 0.3) {
-        // 70% chance to target someone who attacked them
-        victim = getRandomElement(revengeTargets)
-      } else {
-        // Otherwise pick a random valid victim
-        victim = getRandomElement(validVictims)
-      }
+      let victim = getRandomElement(validVictims)
 
       if (validVictims.length > 0 && Math.random() > 0.6) {
         const tributeInState = newState.tributes.find(t => t.id === tribute.id)
@@ -203,11 +318,6 @@ export function simulateTurn(state: GameState): GameState {
             .replace(/{killer}/g, tribute.name)
             .replace(/{victim}/g, victim.name)
 
-          // Add revenge context to description if this was a revenge kill
-          if (revengeTargets.includes(victim)) {
-            description = description.replace("{killer}", `{killer} (buscando venganza)`)
-          }
-
           newEvents.push({
             id: generateUUID(),
             turn: newState.currentTurn,
@@ -224,13 +334,50 @@ export function simulateTurn(state: GameState): GameState {
       }
       }
     } else if (eventCategory.type === "alliance" && template.includes("{tribute2}")) {
-      const validAllies = aliveTributes.filter(
+      // ALLY SYSTEM: Prioritize forming alliances with existing allies
+      let validAllies = aliveTributes.filter(
         t => t.id !== tribute.id && !processedTributes.has(t.id)
       )
-      
+
+      // Prioritize allies of our allies (reciprocal help)
+      const reciprocalTargets = validAllies.filter(target =>
+        tribute.allies.some(ally =>
+          newState.tributes.find(t => t.id === ally.allyId)?.allies.some(a => a.allyId === target.id)
+        )
+      )
+
+      let ally
+      if (reciprocalTargets.length > 0 && Math.random() > 0.4) {
+        // 60% chance to help allies by allying with their allies
+        ally = getRandomElement(reciprocalTargets)
+      } else {
+        ally = getRandomElement(validAllies)
+      }
+
       if (validAllies.length > 0 && Math.random() > 0.7) {
-        const ally = getRandomElement(validAllies)
-        
+        // Create mutual ally relationship
+        const tributeInState = newState.tributes.find(t => t.id === tribute.id)
+        const allyInState = newState.tributes.find(t => t.id === ally.id)
+
+        if (tributeInState && allyInState) {
+          // Add ally relationship for both tributes
+          const existingAlly1 = tributeInState.allies.find(a => a.allyId === ally.id)
+          if (!existingAlly1) {
+            tributeInState.allies.push({
+              allyId: ally.id,
+              reason: "alianza"
+            })
+          }
+
+          const existingAlly2 = allyInState.allies.find(a => a.allyId === tribute.id)
+          if (!existingAlly2) {
+            allyInState.allies.push({
+              allyId: tribute.id,
+              reason: "alianza"
+            })
+          }
+        }
+
         newEvents.push({
           id: generateUUID(),
           turn: newState.currentTurn,
@@ -242,7 +389,7 @@ export function simulateTurn(state: GameState): GameState {
           involvedTributes: [tribute.id, ally.id],
           timestamp: new Date(),
         })
-        
+
         processedTributes.add(tribute.id)
         processedTributes.add(ally.id)
       }
@@ -267,24 +414,83 @@ export function simulateTurn(state: GameState): GameState {
         }
       }
     } else if (eventCategory.type === "sponsor") {
-      if (Math.random() > 0.75) {
-        const tributeInState = newState.tributes.find(t => t.id === tribute.id)
-        if (tributeInState) {
-          tributeInState.health = Math.min(100, tributeInState.health + 20)
-          if (tributeInState.health >= 80) tributeInState.status = "healthy"
-          else if (tributeInState.health >= 50) tributeInState.status = "injured"
-          
+      // ALLY SYSTEM: Prioritize sponsoring allies
+      let validRecipients = aliveTributes.filter(
+        t => t.id !== tribute.id && !processedTributes.has(t.id) && t.health < 80
+      )
+
+      // Prioritize allies for reciprocal help
+      const allyRecipients = validRecipients.filter(recipient =>
+        tribute.allies.some(ally => ally.allyId === recipient.id)
+      )
+
+      let recipient
+      if (allyRecipients.length > 0 && Math.random() > 0.4) {
+        // 60% chance to help allies
+        recipient = getRandomElement(allyRecipients)
+      } else {
+        recipient = getRandomElement(validRecipients)
+      }
+
+      if (validRecipients.length > 0 && Math.random() > 0.5) {
+        const recipientInState = newState.tributes.find(t => t.id === recipient.id)
+        if (recipientInState) {
+          // Select a sponsor based on wealth (richer sponsors more likely)
+          const availableSponsors = newState.sponsors.filter(s => s.wealth > 0)
+          let selectedSponsor
+
+          if (availableSponsors.length > 0) {
+            // Weight selection by wealth
+            const totalWealth = availableSponsors.reduce((sum, s) => sum + s.wealth, 0)
+            let random = Math.random() * totalWealth
+
+            for (const sponsor of availableSponsors) {
+              random -= sponsor.wealth
+              if (random <= 0) {
+                selectedSponsor = sponsor
+                break
+              }
+            }
+          }
+
+          if (!selectedSponsor) {
+            selectedSponsor = getRandomElement(availableSponsors)
+          }
+
+          // Give a random sponsor item
+          const randomItem = getRandomElement(SPONSOR_ITEMS)
+          const itemToGive = { ...randomItem, id: generateUUID() } // Create unique instance
+
+          // Check if recipient already has this type of item
+          const existingItem = recipientInState.inventory.find(item => item.type === itemToGive.type)
+          if (!existingItem) {
+            recipientInState.inventory.push(itemToGive)
+          } else {
+            // Upgrade existing item (add uses)
+            existingItem.uses = Math.min(existingItem.maxUses, existingItem.uses + itemToGive.uses)
+          }
+
+          // ALLY SYSTEM: Create ally relationship (recipient becomes ally of sponsor)
+          const existingAlly = recipientInState.allies.find(a => a.allyId === tribute.id)
+          if (!existingAlly) {
+            recipientInState.allies.push({
+              allyId: tribute.id,
+              reason: "patrocinio"
+            })
+          }
+
           newEvents.push({
             id: generateUUID(),
             turn: newState.currentTurn,
             phase: newState.currentPhase,
             type: "sponsor",
-            description: template.replace("{tribute}", tribute.name),
-            involvedTributes: [tribute.id],
+            description: `${recipient.name} recibe ${itemToGive.name} de ${selectedSponsor.name}`,
+            involvedTributes: [recipient.id],
             timestamp: new Date(),
           })
-          
+
           processedTributes.add(tribute.id)
+          processedTributes.add(recipient.id)
         }
       }
     } else if (eventCategory.type === "theft" && template.includes("{tribute2}")) {
@@ -302,15 +508,6 @@ export function simulateTurn(state: GameState): GameState {
           targetInState.health = Math.max(10, targetInState.health - 25)
           if (targetInState.health < 30) targetInState.status = "critical"
           else if (targetInState.health < 50) targetInState.status = "injured"
-
-          // REVENGE SYSTEM: Add the thief to victim's grudges with reason
-          const existingGrudge = targetInState.grudges.find(g => g.targetId === tribute.id)
-          if (!existingGrudge) {
-            targetInState.grudges.push({
-              targetId: tribute.id,
-              reason: "robo"
-            })
-          }
 
           newEvents.push({
             id: generateUUID(),
@@ -343,15 +540,6 @@ export function simulateTurn(state: GameState): GameState {
           targetInState.health = Math.max(15, targetInState.health - 35)
           if (targetInState.health < 30) targetInState.status = "critical"
           else if (targetInState.health < 50) targetInState.status = "injured"
-
-          // REVENGE SYSTEM: Add the betrayer to victim's grudges with reason
-          const existingGrudge = targetInState.grudges.find(g => g.targetId === tribute.id)
-          if (!existingGrudge) {
-            targetInState.grudges.push({
-              targetId: tribute.id,
-              reason: "traición"
-            })
-          }
 
           newEvents.push({
             id: generateUUID(),
@@ -433,6 +621,93 @@ export function advancePhase(state: GameState): GameState {
   }
 
   return newState
+}
+
+// Item usage functions
+export function useItem(tributeId: string, itemId: string, state: GameState, targetId?: string): { newState: GameState; success: boolean; message: string } {
+  const newState = { ...state }
+  const tribute = newState.tributes.find(t => t.id === tributeId)
+  const target = targetId ? newState.tributes.find(t => t.id === targetId) : tribute
+
+  if (!tribute || !target) {
+    return { newState, success: false, message: "Tributo no encontrado" }
+  }
+
+  const itemIndex = tribute.inventory.findIndex(item => item.id === itemId)
+  if (itemIndex === -1) {
+    return { newState, success: false, message: "Item no encontrado en inventario" }
+  }
+
+  const item = tribute.inventory[itemIndex]
+  if (item.uses <= 0) {
+    return { newState, success: false, message: "El item no tiene usos restantes" }
+  }
+
+  // Apply item effects
+  let success = true
+  let message = ""
+
+  switch (item.type) {
+    case "medkit":
+      if (target.health >= 100) {
+        return { newState, success: false, message: "El objetivo ya está completamente sano" }
+      }
+      target.health = Math.min(100, target.health + (item.effect.health || 0))
+      if (target.health >= 80) target.status = "healthy"
+      else if (target.health >= 50) target.status = "injured"
+      message = `${tribute.name} usa ${item.name} en ${target.name} (+${item.effect.health} HP)`
+      break
+
+    case "food":
+      if (target.health >= 100) {
+        return { newState, success: false, message: "El objetivo ya está completamente sano" }
+      }
+      target.health = Math.min(100, target.health + (item.effect.health || 0))
+      if (target.health >= 80) target.status = "healthy"
+      else if (target.health >= 50) target.status = "injured"
+      message = `${tribute.name} come ${item.name} (+${item.effect.health} HP)`
+      break
+
+    case "weapon":
+      // Weapons can only be used in combat situations - this would need to be integrated with kill events
+      return { newState, success: false, message: "Las armas solo pueden usarse en combate" }
+
+    case "armor":
+      // Armor provides ongoing protection - already applied in combat calculations
+      return { newState, success: false, message: "La armadura proporciona protección automática" }
+
+    case "tool":
+      // Tools provide luck bonuses - already applied in event calculations
+      return { newState, success: false, message: "Las herramientas proporcionan bonos automáticos" }
+
+    default:
+      return { newState, success: false, message: "Tipo de item desconocido" }
+  }
+
+  // Reduce uses
+  item.uses -= 1
+
+  // Remove item if no uses left
+  if (item.uses <= 0) {
+    tribute.inventory.splice(itemIndex, 1)
+  }
+
+  return { newState, success: true, message }
+}
+
+// Calculate combat modifiers from inventory
+export function getCombatModifiers(tribute: Tribute): { damage: number; protection: number; luck: number } {
+  let damage = 0
+  let protection = 0
+  let luck = 0
+
+  for (const item of tribute.inventory) {
+    if (item.effect.damage) damage += item.effect.damage
+    if (item.effect.protection) protection += item.effect.protection
+    if (item.effect.luck) luck += item.effect.luck
+  }
+
+  return { damage, protection, luck }
 }
 
 // Fallback event templates when database is not available

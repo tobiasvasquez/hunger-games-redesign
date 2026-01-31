@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react"
-import { Flame, Sun, Moon, Sparkles, Users, UserPlus, History, FileText, MapPin, HelpCircle } from "lucide-react"
+import { Flame, Sun, Moon, Sparkles, Users, UserPlus, History, FileText, MapPin, HelpCircle, Crown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DistrictGrid } from "@/components/district-grid"
 import { EventFeed } from "@/components/event-feed"
 import { GameControls } from "@/components/game-controls"
 import { FallenTributes } from "@/components/fallen-tributes"
 import { CharacterManager } from "@/components/character-manager"
+import { SponsorManager } from "@/components/sponsor-manager"
 import { TributeSelector } from "@/components/tribute-selector"
 import { DistrictManager } from "@/components/district-manager"
 import { GameHistory } from "@/components/game-history"
@@ -15,7 +16,7 @@ import { NightSummary } from "@/components/night-summary"
 import { DaySummary } from "@/components/day-summary"
 import { playKillSound, playCannonSound } from "@/lib/sounds"
 import { initializeGame, initializeGameWithCharacters, simulateTurn, advancePhase } from "@/lib/game-engine"
-import type { GameState, Character, GameEvent, CustomEventTemplate } from "@/lib/game-types"
+import type { GameState, Character, Sponsor, GameEvent, CustomEventTemplate } from "@/lib/game-types"
 import { getEventTemplates } from "@/lib/event-templates-persistence"
 import { EventTemplateManager } from "@/components/event-template-manager"
 import { GameTutorial } from "@/components/game-tutorial"
@@ -82,7 +83,9 @@ export default function HungerGamesSimulator() {
   const [isPaused, setIsPaused] = useState(false)
   const [simulationController, setSimulationController] = useState<{ abort: () => void } | null>(null)
   const [characters, setCharacters] = useState<Character[]>([])
+  const [sponsors, setSponsors] = useState<Sponsor[]>([])
   const [showCharacterManager, setShowCharacterManager] = useState(false)
+  const [showSponsorManager, setShowSponsorManager] = useState(false)
   const [showTributeSelector, setShowTributeSelector] = useState(false)
   const [showDistrictManager, setShowDistrictManager] = useState(false)
   const [showGameHistory, setShowGameHistory] = useState(false)
@@ -93,6 +96,7 @@ export default function HungerGamesSimulator() {
   const [nightEvents, setNightEvents] = useState<GameEvent[]>([])
   const [dayEvents, setDayEvents] = useState<GameEvent[]>([])
   const [isLoadingCharacters, setIsLoadingCharacters] = useState(true)
+  const [isLoadingSponsors, setIsLoadingSponsors] = useState(true)
   const [currentGameId, setCurrentGameId] = useState<string | null>(null)
   const [previousEventCount, setPreviousEventCount] = useState(0)
   const [customEventTemplates, setCustomEventTemplates] = useState<CustomEventTemplate[]>([])
@@ -104,45 +108,44 @@ export default function HungerGamesSimulator() {
 
   const supabase = createClient()
 
-  // Load characters from cookies first, then from Supabase
+  // Load characters from localStorage only (start empty)
   useEffect(() => {
-    async function loadCharacters() {
-      setIsLoadingCharacters(true)
-      
-      // Try to load from cookies first
-      const cookieData = getCookie("hunger_games_characters")
-      if (cookieData) {
-        try {
-          const parsed = JSON.parse(cookieData)
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setCharacters(parsed)
-            setIsLoadingCharacters(false)
-            return
-          }
-        } catch (e) {
-          console.log("[v0] Error parsing cookie data:", e)
+    setIsLoadingCharacters(true)
+
+    try {
+      const localData = localStorage.getItem("hunger_games_characters")
+      if (localData) {
+        const parsed = JSON.parse(localData)
+        if (Array.isArray(parsed)) {
+          setCharacters(parsed)
         }
       }
-      
-      // Fallback to Supabase if no cookies
+    } catch (e) {
+      console.log("[v0] Error loading characters from localStorage:", e)
+    }
+
+    setIsLoadingCharacters(false)
+  }, [])
+
+  // Load sponsors from Supabase
+  useEffect(() => {
+    async function loadSponsors() {
+      setIsLoadingSponsors(true)
+
       const { data, error } = await supabase
-        .from("characters")
+        .from("sponsors")
         .select("*")
         .order("created_at", { ascending: false })
-      
+
       if (error) {
-        console.log("[v0] Error loading characters:", error)
+        console.log("[v0] Error loading sponsors:", error)
       } else {
-        const chars = data || []
-        setCharacters(chars)
-        // Save to cookies
-        if (chars.length > 0) {
-          setCookie("hunger_games_characters", JSON.stringify(chars))
-        }
+        const sponsorData = data || []
+        setSponsors(sponsorData)
       }
-      setIsLoadingCharacters(false)
+      setIsLoadingSponsors(false)
     }
-    loadCharacters()
+    loadSponsors()
   }, [supabase])
 
   // Load custom event templates
@@ -159,34 +162,65 @@ export default function HungerGamesSimulator() {
     loadTemplates()
   }, [])
 
-  const handleAddCharacter = useCallback(async (name: string, imageUrl?: string) => {
-    // Create character object (don't save to database, only cookies)
+  const handleAddCharacter = useCallback((name: string, imageUrl?: string) => {
+    // Create character object and save to localStorage
     const newCharacter: Character = {
       id: Math.random().toString(36).substring(2, 15),
       name,
       image_url: imageUrl,
       created_at: new Date().toISOString(),
     }
-    
+
     setCharacters(prev => {
       const updated = [newCharacter, ...prev]
-      // Save to cookies
-      setCookie("hunger_games_characters", JSON.stringify(updated))
-      console.log("[v0] Character added to cookies:", updated.length, "characters")
+      // Save to localStorage
+      localStorage.setItem("hunger_games_characters", JSON.stringify(updated))
+      console.log("[v0] Character added to localStorage:", updated.length, "characters")
       return updated
     })
   }, [])
 
-  const handleRemoveCharacter = useCallback(async (id: string) => {
-    // Remove from cookies only (not from database)
+  const handleRemoveCharacter = useCallback((id: string) => {
+    // Remove from localStorage only
     setCharacters(prev => {
       const updated = prev.filter(c => c.id !== id)
-      // Save to cookies
-      setCookie("hunger_games_characters", JSON.stringify(updated))
-      console.log("[v0] Character removed from cookies:", updated.length, "characters")
+      // Save to localStorage
+      localStorage.setItem("hunger_games_characters", JSON.stringify(updated))
+      console.log("[v0] Character removed from localStorage:", updated.length, "characters")
       return updated
     })
   }, [])
+
+  const handleAddSponsor = useCallback(async (name: string, wealth: number) => {
+    // Save to database
+    const { data, error } = await supabase
+      .from("sponsors")
+      .insert([{ name, wealth }])
+      .select()
+      .single()
+
+    if (error) {
+      console.log("[v0] Error adding sponsor:", error)
+    } else {
+      setSponsors(prev => [data, ...prev])
+      console.log("[v0] Sponsor added to database:", data)
+    }
+  }, [supabase])
+
+  const handleRemoveSponsor = useCallback(async (id: string) => {
+    // Remove from database
+    const { error } = await supabase
+      .from("sponsors")
+      .delete()
+      .eq("id", id)
+
+    if (error) {
+      console.log("[v0] Error removing sponsor:", error)
+    } else {
+      setSponsors(prev => prev.filter(s => s.id !== id))
+      console.log("[v0] Sponsor removed from database:", id)
+    }
+  }, [supabase])
 
   const handleAssignTribute = useCallback((district: number, slot: number, character: Character | null) => {
     setGameState(prev => ({
@@ -206,9 +240,9 @@ export default function HungerGamesSimulator() {
   }, [])
 
   const handleRandomizeTributes = useCallback(() => {
-    if (characters.length < 24) return
-    setGameState(prev => initializeGameWithCharacters(characters, prev.districts))
-  }, [characters])
+    if (characters.length === 0) return
+    setGameState(prev => initializeGameWithCharacters(characters, prev.districts, sponsors))
+  }, [characters, sponsors])
 
   const handleDistrictNameChange = useCallback((districtId: number, name: string) => {
     setGameState(prev => ({
@@ -243,14 +277,16 @@ export default function HungerGamesSimulator() {
     setCurrentGameId(gameId)
     setPreviousEventCount(0)
 
-    const newState: GameState = {
-      ...gameState,
+    // Initialize game with current districts and sponsors
+    const newState: GameState = initializeGame(sponsors, gameState.districts)
+    const gameReadyState: GameState = {
+      ...newState,
       gameStarted: true,
       currentTurn: 1,
       currentPhase: "day"
     }
 
-    setGameState(newState)
+    setGameState(gameReadyState)
 
     // Save initial game state
     await updateGame(gameId, {
@@ -567,9 +603,7 @@ export default function HungerGamesSimulator() {
                     >
                       <Users className="w-4 h-4 mr-2" />
                       <span className="hidden sm:inline">Tributos</span>
-                      {characters.length < 24 && (
-                        <span className="ml-1 text-xs text-muted-foreground">({characters.length}/24)</span>
-                      )}
+                      <span className="ml-1 text-xs text-muted-foreground">({characters.length})</span>
                     </Button>
                     <Button
                       variant="outline"
@@ -579,6 +613,16 @@ export default function HungerGamesSimulator() {
                     >
                       <MapPin className="w-4 h-4 mr-2" />
                       <span className="hidden sm:inline">Distritos</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowSponsorManager(true)}
+                      className="cursor-pointer bg-transparent"
+                    >
+                      <Crown className="w-4 h-4 mr-2" />
+                      <span className="hidden sm:inline">Patrocinadores</span>
+                      <span className="ml-1 text-xs text-muted-foreground">({sponsors.length})</span>
                     </Button>
                   </>
                 )}
@@ -670,7 +714,7 @@ export default function HungerGamesSimulator() {
                   Tributos por Distrito
                 </h2>
                 <span className="text-xs text-muted-foreground">
-                  {aliveTributes}/24 vivos
+                  {aliveTributes}/{gameState.tributes.length} vivos
                 </span>
               </div>
               
@@ -794,6 +838,17 @@ export default function HungerGamesSimulator() {
       {/* Tutorial Modal */}
       {showTutorial && (
         <GameTutorial onClose={() => setShowTutorial(false)} />
+      )}
+
+      {/* Sponsor Manager Modal */}
+      {showSponsorManager && (
+        <SponsorManager
+          sponsors={sponsors}
+          onAddSponsor={handleAddSponsor}
+          onRemoveSponsor={handleRemoveSponsor}
+          onClose={() => setShowSponsorManager(false)}
+          isLoading={isLoadingSponsors}
+        />
       )}
     </div>
   )

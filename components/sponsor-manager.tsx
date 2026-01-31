@@ -5,33 +5,33 @@ import React from "react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Trash2, Users, Save, X } from "lucide-react"
-import type { Character } from "@/lib/game-types"
+import { Plus, Trash2, Crown, Save, X } from "lucide-react"
+import type { Sponsor } from "@/lib/game-types"
 import { cn } from "@/lib/utils"
 
-interface CharacterManagerProps {
-  characters: Character[]
-  onAddCharacter: (name: string, imageUrl?: string) => void
-  onRemoveCharacter: (id: string) => void
+interface SponsorManagerProps {
+  sponsors: Sponsor[]
+  onAddSponsor: (name: string, wealth: number) => void
+  onRemoveSponsor: (id: string) => void
   onClose: () => void
   isLoading?: boolean
 }
 
-export function CharacterManager({
-  characters,
-  onAddCharacter,
-  onRemoveCharacter,
+export function SponsorManager({
+  sponsors,
+  onAddSponsor,
+  onRemoveSponsor,
   onClose,
   isLoading
-}: CharacterManagerProps) {
+}: SponsorManagerProps) {
   const [newName, setNewName] = useState("")
-  const [newImageUrl, setNewImageUrl] = useState("")
+  const [newWealth, setNewWealth] = useState(5)
 
   const handleAdd = () => {
     if (newName.trim()) {
-      onAddCharacter(newName.trim(), newImageUrl.trim() || undefined)
+      onAddSponsor(newName.trim(), newWealth)
       setNewName("")
-      setNewImageUrl("")
+      setNewWealth(5)
     }
   }
 
@@ -41,15 +41,31 @@ export function CharacterManager({
     }
   }
 
+  const getWealthLabel = (wealth: number) => {
+    if (wealth <= 3) return "Pobre"
+    if (wealth <= 5) return "Moderado"
+    if (wealth <= 7) return "Rico"
+    if (wealth <= 9) return "Muy Rico"
+    return "Extremadamente Rico"
+  }
+
+  const getWealthColor = (wealth: number) => {
+    if (wealth <= 3) return "text-red-500"
+    if (wealth <= 5) return "text-orange-500"
+    if (wealth <= 7) return "text-yellow-500"
+    if (wealth <= 9) return "text-green-500"
+    return "text-emerald-500"
+  }
+
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-card border border-border rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <div className="flex items-center gap-3">
-            <Users className="w-5 h-5 text-primary" />
+            <Crown className="w-5 h-5 text-primary" />
             <h2 className="font-serif text-xl font-bold text-foreground">
-              Gestionar Personajes
+              Gestionar Patrocinadores
             </h2>
           </div>
           <Button
@@ -62,26 +78,35 @@ export function CharacterManager({
           </Button>
         </div>
 
-        {/* Add new character */}
+        {/* Add new sponsor */}
         <div className="p-4 border-b border-border bg-secondary/30">
           <p className="text-sm text-muted-foreground mb-3">
-            Agrega personajes para usar en los juegos. Puedes crear los que necesites.
+            Agrega patrocinadores del Capitolio. La riqueza determina qué tan generosos son con los tributos.
           </p>
           <div className="flex flex-col sm:flex-row gap-2">
             <Input
-              placeholder="Nombre del personaje"
+              placeholder="Nombre del patrocinador"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyPress={handleKeyPress}
               className="flex-1"
             />
-            <Input
-              placeholder="URL de imagen (opcional)"
-              value={newImageUrl}
-              onChange={(e) => setNewImageUrl(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className="flex-1"
-            />
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-muted-foreground whitespace-nowrap">
+                Riqueza:
+              </label>
+              <Input
+                type="number"
+                min="1"
+                max="10"
+                value={newWealth}
+                onChange={(e) => setNewWealth(Math.max(1, Math.min(10, parseInt(e.target.value) || 5)))}
+                className="w-20"
+              />
+              <span className={cn("text-xs font-medium", getWealthColor(newWealth))}>
+                {getWealthLabel(newWealth)}
+              </span>
+            </div>
             <Button
               onClick={handleAdd}
               disabled={!newName.trim() || isLoading}
@@ -93,47 +118,44 @@ export function CharacterManager({
           </div>
         </div>
 
-        {/* Character list */}
+        {/* Sponsor list */}
         <div className="flex-1 overflow-y-auto p-4">
-          {characters.length === 0 ? (
+          {sponsors.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>No hay personajes agregados</p>
-              <p className="text-sm mt-1">Agrega personajes usando el formulario de arriba</p>
+              <Crown className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>No hay patrocinadores agregados</p>
+              <p className="text-sm mt-1">Agrega patrocinadores usando el formulario de arriba</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {characters.map((char) => (
+              {sponsors.map((sponsor) => (
                 <div
-                  key={char.id}
+                  key={sponsor.id}
                   className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg border border-border/50 group"
                 >
                   {/* Avatar */}
                   <div className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 overflow-hidden",
-                    "bg-gradient-to-br from-primary/50 to-accent/50 text-foreground"
+                    "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0",
+                    "bg-gradient-to-br from-amber-500/50 to-yellow-500/50 text-foreground"
                   )}>
-                    {char.image_url ? (
-                      <img 
-                        src={char.image_url || "/placeholder.svg"} 
-                        alt={char.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      char.name.charAt(0).toUpperCase()
-                    )}
+                    <Crown className="w-5 h-5" />
                   </div>
-                  
-                  {/* Name */}
-                  <span className="flex-1 font-medium text-sm text-foreground truncate">
-                    {char.name}
-                  </span>
-                  
+
+                  {/* Name and Wealth */}
+                  <div className="flex-1 min-w-0">
+                    <span className="font-medium text-sm text-foreground truncate block">
+                      {sponsor.name}
+                    </span>
+                    <span className={cn("text-xs font-medium", getWealthColor(sponsor.wealth))}>
+                      {getWealthLabel(sponsor.wealth)} ({sponsor.wealth}/10)
+                    </span>
+                  </div>
+
                   {/* Delete */}
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => onRemoveCharacter(char.id)}
+                    onClick={() => onRemoveSponsor(sponsor.id)}
                     disabled={isLoading}
                     className="opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-destructive/20 hover:text-destructive"
                   >
@@ -148,7 +170,7 @@ export function CharacterManager({
         {/* Footer */}
         <div className="p-4 border-t border-border bg-secondary/30 flex items-center justify-between">
           <span className="text-sm text-muted-foreground">
-            {characters.length} personaje{characters.length !== 1 ? "s" : ""} guardado{characters.length !== 1 ? "s" : ""}
+            {sponsors.length} patrocinador{sponsors.length !== 1 ? "es" : ""} guardado{sponsors.length !== 1 ? "s" : ""}
           </span>
           <Button
             onClick={onClose}
