@@ -28,23 +28,13 @@ export function playKillSound() {
 
 // Play a cannon sound (for tribute death announcement)
 export function playCannonSound() {
-  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-  
-  // Create a deep, cannon-like sound
-  const oscillator = audioContext.createOscillator()
-  const gainNode = audioContext.createGain()
-  
-  oscillator.connect(gainNode)
-  gainNode.connect(audioContext.destination)
-  
-  // Cannon sound: deep boom
-  oscillator.type = 'sine'
-  oscillator.frequency.setValueAtTime(80, audioContext.currentTime)
-  oscillator.frequency.exponentialRampToValueAtTime(40, audioContext.currentTime + 0.3)
-  
-  gainNode.gain.setValueAtTime(0.4, audioContext.currentTime)
-  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5)
-  
-  oscillator.start(audioContext.currentTime)
-  oscillator.stop(audioContext.currentTime + 0.5)
+  try {
+    const audio = new Audio('/death_sound.mp3')
+    audio.volume = 0.4
+    audio.play().catch(error => {
+      console.warn('Failed to play death sound:', error)
+    })
+  } catch (error) {
+    console.warn('Audio playback not supported:', error)
+  }
 }

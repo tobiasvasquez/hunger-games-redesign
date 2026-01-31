@@ -1,4 +1,4 @@
-import type { Tribute, GameEvent, GameState, District, CustomEventTemplate } from "./game-types"
+import type { Tribute, GameEvent, GameState, District, CustomEventTemplate, Grudge } from "./game-types"
 import { DEFAULT_TRIBUTE_NAMES, AVATAR_COLORS, DISTRICT_NAMES, DISTRICT_COLORS } from "./game-types"
 
 const DEFAULT_DISTRICTS: District[] = Array.from({ length: 12 }, (_, i) => ({
@@ -34,6 +34,7 @@ export function initializeGame(): GameState {
         kills: 0,
         health: 60,
         status: "healthy",
+        grudges: [] as Grudge[],
       })
     }
   }
@@ -74,6 +75,7 @@ export function initializeGameWithCharacters(
         kills: 0,
         health: 60,
         status: "healthy",
+        grudges: [],
       })
     }
   }
@@ -169,24 +171,43 @@ export function simulateTurn(state: GameState): GameState {
         }
       } else if (newState.currentPhase === "night") {
       // Find a valid victim (not from same district, still alive)
-      const validVictims = aliveTributes.filter(
+      let validVictims = aliveTributes.filter(
         t => t.id !== tribute.id && t.district !== tribute.district && t.isAlive && !processedTributes.has(t.id)
       )
-      
+
+      // REVENGE SYSTEM: Prioritize victims that have previously attacked this tribute
+      const revengeTargets = validVictims.filter(v => tribute.grudges.some(g => g.targetId === v.id))
+      let victim
+
+      if (revengeTargets.length > 0 && Math.random() > 0.3) {
+        // 70% chance to target someone who attacked them
+        victim = getRandomElement(revengeTargets)
+      } else {
+        // Otherwise pick a random valid victim
+        victim = getRandomElement(validVictims)
+      }
+
       if (validVictims.length > 0 && Math.random() > 0.6) {
-        const victim = getRandomElement(validVictims)
         const tributeInState = newState.tributes.find(t => t.id === tribute.id)
         const victimInState = newState.tributes.find(t => t.id === victim.id)
-        
+
         if (tributeInState && victimInState) {
           victimInState.isAlive = false
           tributeInState.kills += 1
-          
+
+          // REVENGE SYSTEM: Since victim dies, we can't add grudges to them,
+          // but we could track this for narrative purposes or future revenge mechanics
+
           // Replace all occurrences of placeholders (using global replace)
           let description = template
             .replace(/{killer}/g, tribute.name)
             .replace(/{victim}/g, victim.name)
-          
+
+          // Add revenge context to description if this was a revenge kill
+          if (revengeTargets.includes(victim)) {
+            description = description.replace("{killer}", `{killer} (buscando venganza)`)
+          }
+
           newEvents.push({
             id: generateUUID(),
             turn: newState.currentTurn,
@@ -196,7 +217,7 @@ export function simulateTurn(state: GameState): GameState {
             involvedTributes: [tribute.id, victim.id],
             timestamp: new Date(),
           })
-          
+
           processedTributes.add(tribute.id)
           processedTributes.add(victim.id)
         }
@@ -281,7 +302,16 @@ export function simulateTurn(state: GameState): GameState {
           targetInState.health = Math.max(10, targetInState.health - 25)
           if (targetInState.health < 30) targetInState.status = "critical"
           else if (targetInState.health < 50) targetInState.status = "injured"
-          
+
+          // REVENGE SYSTEM: Add the thief to victim's grudges with reason
+          const existingGrudge = targetInState.grudges.find(g => g.targetId === tribute.id)
+          if (!existingGrudge) {
+            targetInState.grudges.push({
+              targetId: tribute.id,
+              reason: "robo"
+            })
+          }
+
           newEvents.push({
             id: generateUUID(),
             turn: newState.currentTurn,
@@ -293,7 +323,7 @@ export function simulateTurn(state: GameState): GameState {
             involvedTributes: [tribute.id, target.id],
             timestamp: new Date(),
           })
-          
+
           processedTributes.add(tribute.id)
           processedTributes.add(target.id)
         }
@@ -313,7 +343,16 @@ export function simulateTurn(state: GameState): GameState {
           targetInState.health = Math.max(15, targetInState.health - 35)
           if (targetInState.health < 30) targetInState.status = "critical"
           else if (targetInState.health < 50) targetInState.status = "injured"
-          
+
+          // REVENGE SYSTEM: Add the betrayer to victim's grudges with reason
+          const existingGrudge = targetInState.grudges.find(g => g.targetId === tribute.id)
+          if (!existingGrudge) {
+            targetInState.grudges.push({
+              targetId: tribute.id,
+              reason: "traición"
+            })
+          }
+
           newEvents.push({
             id: generateUUID(),
             turn: newState.currentTurn,
@@ -325,7 +364,7 @@ export function simulateTurn(state: GameState): GameState {
             involvedTributes: [tribute.id, target.id],
             timestamp: new Date(),
           })
-          
+
           processedTributes.add(tribute.id)
           processedTributes.add(target.id)
         }
@@ -411,6 +450,7 @@ function getFallbackEventTemplates(): CustomEventTemplate[] {
 
     // Night events
     { id: "9", template: "{killer} embosca a {victim} mientras dormía. {victim} ha caído.", type: "kill", phase: "night", requiresKiller: true, requiresVictim: true, requiresTwoTributes: false },
+    { id: "9b", template: "{killer} (buscando venganza) ataca a {victim} en la oscuridad. {victim} no sobrevive.", type: "kill", phase: "night", requiresKiller: true, requiresVictim: true, requiresTwoTributes: false },
     { id: "10", template: "{tribute} activa una trampa del Capitolio pero logra escapar herido/a.", type: "trap", phase: "night", requiresKiller: false, requiresVictim: false, requiresTwoTributes: false },
     { id: "11", template: "{tribute} escucha pasos y huye justo a tiempo.", type: "escape", phase: "night", requiresKiller: false, requiresVictim: false, requiresTwoTributes: false },
     { id: "12", template: "{tribute} no puede dormir pensando en su familia.", type: "neutral", phase: "night", requiresKiller: false, requiresVictim: false, requiresTwoTributes: false },

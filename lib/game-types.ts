@@ -5,6 +5,11 @@ export interface Character {
   created_at?: string
 }
 
+export interface Grudge {
+  targetId: string
+  reason: string
+}
+
 export interface Tribute {
   id: string
   name: string
@@ -17,6 +22,7 @@ export interface Tribute {
   kills: number
   health: number
   status: "healthy" | "injured" | "critical"
+  grudges: Grudge[] // Grudges with target IDs and reasons
 }
 
 export type EventType = "kill" | "sponsor" | "shelter" | "injury" | "alliance" | "trap" | "escape" | "neutral" | "betrayal" | "theft" | "exploration"

@@ -1,14 +1,14 @@
 "use client"
 
 import React, { useEffect } from "react"
-import { Moon, Sun, ArrowRight, Skull, Users } from "lucide-react"
+import { Sun, Moon, ArrowRight, Skull, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { GameEvent } from "@/lib/game-types"
 import { EventFeed } from "./event-feed"
 import { playCannonSound } from "@/lib/sounds"
 import { cn } from "@/lib/utils"
 
-interface NightSummaryProps {
+interface DaySummaryProps {
   events: GameEvent[]
   turn: number
   aliveCount: number
@@ -16,13 +16,13 @@ interface NightSummaryProps {
   onProceed: () => void
 }
 
-export function NightSummary({
+export function DaySummary({
   events,
   turn,
   aliveCount,
   deadCount,
   onProceed,
-}: NightSummaryProps) {
+}: DaySummaryProps) {
   // Disable body scroll when modal is open
   useEffect(() => {
     const originalStyle = window.getComputedStyle(document.body).overflow
@@ -52,18 +52,18 @@ export function NightSummary({
     <div className="fixed inset-0 bg-background/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
       <div className="bg-card border border-border rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="p-6 border-b border-border bg-gradient-to-r from-indigo-950/50 to-purple-950/50">
+        <div className="p-6 border-b border-border bg-gradient-to-r from-amber-950/50 to-orange-950/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full bg-indigo-500/20 border border-indigo-500/30">
-                <Moon className="w-8 h-8 text-indigo-400" />
+              <div className="p-3 rounded-full bg-amber-500/20 border border-amber-500/30">
+                <Sun className="w-8 h-8 text-amber-400" />
               </div>
               <div>
                 <h2 className="font-serif text-2xl font-bold text-foreground">
-                  Resumen de la Noche
+                  Resumen del Día
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Turno {turn} - Noche
+                  Turno {turn} - Día
                 </p>
               </div>
             </div>
@@ -86,9 +86,9 @@ export function NightSummary({
         <div className="flex-1 overflow-y-auto p-6">
           {events.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              <Moon className="w-16 h-16 mx-auto mb-4 opacity-50" />
-              <p className="text-lg">La noche pasó sin incidentes</p>
-              <p className="text-sm mt-2">Todos los tributos sobrevivieron esta noche</p>
+              <Sun className="w-16 h-16 mx-auto mb-4 opacity-50" />
+              <p className="text-lg">El día pasó sin incidentes</p>
+              <p className="text-sm mt-2">Todos los tributos sobrevivieron este día</p>
             </div>
           ) : (
             <div className="space-y-8">
@@ -101,7 +101,7 @@ export function NightSummary({
                     </div>
                     <div>
                       <h3 className="font-serif text-xl font-bold text-red-400">
-                        Caídos en la Noche
+                        Caídos en el Día
                       </h3>
                       <p className="text-sm text-red-300/80">
                         {killEvents.length} tributo{killEvents.length !== 1 ? 's' : ''} eliminado{killEvents.length !== 1 ? 's' : ''}
@@ -148,12 +148,12 @@ export function NightSummary({
               {otherEvents.length > 0 && (
                 <div className="bg-card/30 border border-border/50 rounded-xl p-6">
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 rounded-full bg-indigo-500/20 border border-indigo-500/30">
-                      <Moon className="w-6 h-6 text-indigo-400" />
+                    <div className="p-2 rounded-full bg-amber-500/20 border border-amber-500/30">
+                      <Sun className="w-6 h-6 text-amber-400" />
                     </div>
                     <div>
                       <h3 className="font-serif text-xl font-bold text-foreground">
-                        Eventos Nocturnos
+                        Eventos Diurnos
                       </h3>
                       <p className="text-sm text-muted-foreground">
                         {otherEvents.length} evento{otherEvents.length !== 1 ? 's' : ''} ocurrido{otherEvents.length !== 1 ? 's' : ''}
@@ -165,7 +165,7 @@ export function NightSummary({
                       <EventFeed
                         events={otherEvents}
                         currentTurn={turn}
-                        currentPhase="night"
+                        currentPhase="day"
                       />
                     </div>
                   </div>
@@ -176,18 +176,18 @@ export function NightSummary({
         </div>
 
         {/* Footer with Proceed Button */}
-        <div className="p-6 border-t border-border bg-gradient-to-r from-amber-950/30 to-orange-950/30">
+        <div className="p-6 border-t border-border bg-gradient-to-r from-indigo-950/30 to-purple-950/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Sun className="w-4 h-4 text-amber-400" />
-              <span>Preparándose para el nuevo día...</span>
+              <Moon className="w-4 h-4 text-indigo-400" />
+              <span>La noche está cayendo...</span>
             </div>
             <Button
               onClick={onProceed}
               size="lg"
               className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold cursor-pointer"
             >
-              Continuar al Día
+              Continuar a la Noche
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </div>

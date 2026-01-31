@@ -129,6 +129,7 @@ export function DistrictGrid({
                 <TributeCard
                   key={tribute.id}
                   tribute={tribute}
+                  allTributes={tributes}
                   editable={editable}
                   onNameChange={(name) => onTributeNameChange?.(tribute.id, name)}
                 />

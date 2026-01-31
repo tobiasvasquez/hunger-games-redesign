@@ -12,6 +12,7 @@ import { TributeSelector } from "@/components/tribute-selector"
 import { DistrictManager } from "@/components/district-manager"
 import { GameHistory } from "@/components/game-history"
 import { NightSummary } from "@/components/night-summary"
+import { DaySummary } from "@/components/day-summary"
 import { playKillSound, playCannonSound } from "@/lib/sounds"
 import { initializeGame, initializeGameWithCharacters, simulateTurn, advancePhase } from "@/lib/game-engine"
 import type { GameState, Character, GameEvent, CustomEventTemplate } from "@/lib/game-types"
@@ -86,9 +87,11 @@ export default function HungerGamesSimulator() {
   const [showDistrictManager, setShowDistrictManager] = useState(false)
   const [showGameHistory, setShowGameHistory] = useState(false)
   const [showNightSummary, setShowNightSummary] = useState(false)
+  const [showDaySummary, setShowDaySummary] = useState(false)
   const [showEventTemplateManager, setShowEventTemplateManager] = useState(false)
   const [showTutorial, setShowTutorial] = useState(false)
   const [nightEvents, setNightEvents] = useState<GameEvent[]>([])
+  const [dayEvents, setDayEvents] = useState<GameEvent[]>([])
   const [isLoadingCharacters, setIsLoadingCharacters] = useState(true)
   const [currentGameId, setCurrentGameId] = useState<string | null>(null)
   const [previousEventCount, setPreviousEventCount] = useState(0)
@@ -265,22 +268,15 @@ export default function HungerGamesSimulator() {
 
     setIsSimulating(true)
     
-    // Check if we're ending a night phase
+    // Check current phase
+    const wasDay = gameState.currentPhase === "day"
     const wasNight = gameState.currentPhase === "night"
     
     // Simulate turn and get new state with events
     const stateAfterTurn = simulateTurn(gameState)
     const newEvents = stateAfterTurn.events.slice(previousEventCount)
     
-    // Play sounds for kill events
-    const killEvents = newEvents.filter(e => e.type === "kill")
-    killEvents.forEach((event, index) => {
-      setTimeout(() => {
-        playKillSound()
-        // Play cannon sound after a short delay
-        setTimeout(() => playCannonSound(), 100)
-      }, index * 200)
-    })
+    // Note: Death sounds now play when summary modals open
     
     setGameState(stateAfterTurn)
     setPreviousEventCount(stateAfterTurn.events.length)
@@ -295,7 +291,7 @@ export default function HungerGamesSimulator() {
     // Advance phase
     const stateAfterPhase = advancePhase(stateAfterTurn)
     
-    // If we just ended a night, show the summary
+    // If we just ended a night, show the night summary
     if (wasNight && stateAfterPhase.currentPhase === "day") {
       // Get all night events from this turn
       const nightEventsForSummary = stateAfterTurn.events.filter(
@@ -309,6 +305,24 @@ export default function HungerGamesSimulator() {
         currentTurn: stateAfterTurn.currentTurn, // Keep current turn
       })
       setShowNightSummary(true)
+      setIsSimulating(false)
+      return
+    }
+
+    // If we just ended a day, show the day summary
+    if (wasDay && stateAfterPhase.currentPhase === "night") {
+      // Get all day events from this turn
+      const dayEventsForSummary = stateAfterTurn.events.filter(
+        e => e.turn === stateAfterTurn.currentTurn && e.phase === "day"
+      )
+      setDayEvents(dayEventsForSummary)
+      // Update state but keep it at the end of day for the summary
+      setGameState({
+        ...stateAfterPhase,
+        currentPhase: "day", // Keep as day for display
+        currentTurn: stateAfterTurn.currentTurn, // Keep current turn
+      })
+      setShowDaySummary(true)
       setIsSimulating(false)
       return
     }
@@ -368,14 +382,7 @@ export default function HungerGamesSimulator() {
       const newEvents = newState.events.slice(eventCount)
       eventCount = newState.events.length
 
-      // Play sounds for kill events (but don't show modal during auto-simulate)
-      const killEvents = newEvents.filter(e => e.type === "kill")
-      killEvents.forEach((event, index) => {
-        setTimeout(() => {
-          playKillSound()
-          setTimeout(() => playCannonSound(), 100)
-        }, index * 150)
-      })
+      // Note: Death sounds now play when summary modals open (not during auto-simulate)
 
       // Save new events
       if (newEvents.length > 0) {
@@ -427,20 +434,42 @@ export default function HungerGamesSimulator() {
 
     setShowNightSummary(false)
     setNightEvents([])
-    
+
     // Advance to the next day
     const nextState = {
       ...gameState,
       currentPhase: "day" as const,
       currentTurn: gameState.currentTurn + 1,
     }
-    
+
     setGameState(nextState)
-    
+
     // Update game state in database
     await updateGame(currentGameId, {
       current_turn: nextState.currentTurn,
       current_phase: "day",
+      status: nextState.isGameOver ? "finished" : "in_progress",
+      winner_id: nextState.winner?.id || null,
+    })
+  }, [currentGameId, gameState])
+
+  const handleProceedToNight = useCallback(async () => {
+    if (!currentGameId) return
+
+    setShowDaySummary(false)
+    setDayEvents([])
+
+    // Advance to night
+    const nextState = {
+      ...gameState,
+      currentPhase: "night" as const,
+    }
+
+    setGameState(nextState)
+
+    // Update game state in database
+    await updateGame(currentGameId, {
+      current_phase: "night",
       status: nextState.isGameOver ? "finished" : "in_progress",
       winner_id: nextState.winner?.id || null,
     })
@@ -720,6 +749,17 @@ export default function HungerGamesSimulator() {
           aliveCount={gameState.tributes.filter(t => t.isAlive).length}
           deadCount={gameState.tributes.filter(t => !t.isAlive).length}
           onProceed={handleProceedToDay}
+        />
+      )}
+
+      {/* Day Summary Modal */}
+      {showDaySummary && (
+        <DaySummary
+          events={dayEvents}
+          turn={gameState.currentTurn}
+          aliveCount={gameState.tributes.filter(t => t.isAlive).length}
+          deadCount={gameState.tributes.filter(t => !t.isAlive).length}
+          onProceed={handleProceedToNight}
         />
       )}
 
