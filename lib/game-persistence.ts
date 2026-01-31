@@ -42,20 +42,42 @@ export async function updateGame(
   }
 ): Promise<boolean> {
   const supabase = getSupabase()
-  const { error } = await supabase
-    .from("games")
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", gameId)
 
-  if (error) {
-    console.error("Error updating game:", error)
+  try {
+    const { data, error } = await supabase
+      .from("games")
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", gameId)
+      .select()
+
+    if (error) {
+      console.error("Error updating game:", {
+        error,
+        gameId,
+        updates,
+        errorMessage: error.message,
+        errorDetails: error.details,
+        errorHint: error.hint,
+        errorCode: error.code,
+      })
+      return false
+    }
+
+    console.log("Successfully updated game:", gameId, updates)
+    return true
+  } catch (err) {
+    console.error("Exception updating game:", {
+      error: err,
+      gameId,
+      updates,
+      errorType: typeof err,
+      errorMessage: err instanceof Error ? err.message : 'Unknown error',
+    })
     return false
   }
-
-  return true
 }
 
 /**
@@ -225,10 +247,43 @@ export async function saveTributes(
     position: tribute.slot + 1, // slot is 0-based, position is 1-based
   }))
 
-  const { error } = await supabase.from("tributes").insert(tributesToInsert)
+  try {
+    const { error, data } = await supabase.from("tributes").insert(tributesToInsert).select()
 
-  if (error) {
-    console.error("Error saving tributes:", error)
+    if (error) {
+      console.error("Error saving tributes:", error)
+      console.error("Error details:", {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      })
+      console.error("Sample tribute data:", tributesToInsert[0])
+      console.error("Total tributes to insert:", tributesToInsert.length)
+
+      // Check for common issues
+      if (error.message?.includes("relation") && error.message?.includes("does not exist")) {
+        console.error("❌ DATABASE TABLES NOT CREATED!")
+        console.error("💡 SOLUTION: Run the database setup scripts in Supabase SQL Editor:")
+        console.error("   1. scripts/001_create_hunger_games_tables.sql")
+        console.error("   2. scripts/002_add_image_url_to_characters.sql (if needed)")
+        console.error("   3. scripts/003_update_game_events_types.sql (if needed)")
+        console.error("   4. scripts/004_change_involved_tribute_ids_to_text.sql (if needed)")
+        console.error("   5. scripts/005_create_event_templates_table.sql (if needed)")
+        console.error("   6. scripts/006_insert_default_event_templates.sql (if needed)")
+        console.error("   7. scripts/007_create_sponsors_table.sql (if needed)")
+      } else if (error.code === '42501') {
+        console.error("❌ PERMISSION DENIED! Check RLS policies in Supabase.")
+      } else if (error.code === '23505') {
+        console.error("❌ UNIQUE CONSTRAINT VIOLATION! Duplicate data detected.")
+      }
+
+      return false
+    }
+
+    console.log("Successfully saved", data?.length || 0, "tributes")
+  } catch (err) {
+    console.error("Exception saving tributes:", err)
     return false
   }
 
@@ -266,6 +321,8 @@ export async function loadGameTributes(gameId: string): Promise<Tribute[]> {
     kills: tribute.kills,
     health: tribute.health,
     status: tribute.status as "healthy" | "injured" | "critical",
+    allies: [], // Not stored in database
+    inventory: [], // Not stored in database
   }))
 }
 

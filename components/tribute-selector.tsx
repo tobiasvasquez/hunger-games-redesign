@@ -126,9 +126,9 @@ export function TributeSelector({
             <Button
               variant="outline"
               onClick={onRandomize}
-              disabled={characters.length < 24}
+              disabled={characters.length === 0}
               className="cursor-pointer bg-transparent"
-              title={characters.length < 24 ? `Necesitas 24 personajes para aleatorizar (tienes ${characters.length})` : "Asignar personajes aleatoriamente"}
+              title={characters.length === 0 ? "Agrega personajes para poder aleatorizar" : "Asignar personajes aleatoriamente"}
             >
               <Shuffle className="w-4 h-4 mr-2" />
               Aleatorio

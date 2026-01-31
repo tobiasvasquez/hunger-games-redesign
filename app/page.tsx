@@ -108,24 +108,26 @@ export default function HungerGamesSimulator() {
 
   const supabase = createClient()
 
-  // Load characters from localStorage only (start empty)
+  // Load characters from database
   useEffect(() => {
-    setIsLoadingCharacters(true)
+    async function loadCharacters() {
+      setIsLoadingCharacters(true)
 
-    try {
-      const localData = localStorage.getItem("hunger_games_characters")
-      if (localData) {
-        const parsed = JSON.parse(localData)
-        if (Array.isArray(parsed)) {
-          setCharacters(parsed)
-        }
+      const { data, error } = await supabase
+        .from("characters")
+        .select("*")
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.log("[v0] Error loading characters:", error)
+      } else {
+        const characterData = data || []
+        setCharacters(characterData)
       }
-    } catch (e) {
-      console.log("[v0] Error loading characters from localStorage:", e)
+      setIsLoadingCharacters(false)
     }
-
-    setIsLoadingCharacters(false)
-  }, [])
+    loadCharacters()
+  }, [supabase])
 
   // Load sponsors from Supabase
   useEffect(() => {
@@ -162,34 +164,36 @@ export default function HungerGamesSimulator() {
     loadTemplates()
   }, [])
 
-  const handleAddCharacter = useCallback((name: string, imageUrl?: string) => {
-    // Create character object and save to localStorage
-    const newCharacter: Character = {
-      id: Math.random().toString(36).substring(2, 15),
-      name,
-      image_url: imageUrl,
-      created_at: new Date().toISOString(),
+  const handleAddCharacter = useCallback(async (name: string, imageUrl?: string) => {
+    // Save to database
+    const { data, error } = await supabase
+      .from("characters")
+      .insert([{ name, image_url: imageUrl }])
+      .select()
+      .single()
+
+    if (error) {
+      console.log("[v0] Error adding character:", error)
+    } else {
+      setCharacters(prev => [data, ...prev])
+      console.log("[v0] Character added to database:", data)
     }
+  }, [supabase])
 
-    setCharacters(prev => {
-      const updated = [newCharacter, ...prev]
-      // Save to localStorage
-      localStorage.setItem("hunger_games_characters", JSON.stringify(updated))
-      console.log("[v0] Character added to localStorage:", updated.length, "characters")
-      return updated
-    })
-  }, [])
+  const handleRemoveCharacter = useCallback(async (id: string) => {
+    // Remove from database
+    const { error } = await supabase
+      .from("characters")
+      .delete()
+      .eq("id", id)
 
-  const handleRemoveCharacter = useCallback((id: string) => {
-    // Remove from localStorage only
-    setCharacters(prev => {
-      const updated = prev.filter(c => c.id !== id)
-      // Save to localStorage
-      localStorage.setItem("hunger_games_characters", JSON.stringify(updated))
-      console.log("[v0] Character removed from localStorage:", updated.length, "characters")
-      return updated
-    })
-  }, [])
+    if (error) {
+      console.log("[v0] Error removing character:", error)
+    } else {
+      setCharacters(prev => prev.filter(c => c.id !== id))
+      console.log("[v0] Character removed from database:", id)
+    }
+  }, [supabase])
 
   const handleAddSponsor = useCallback(async (name: string, wealth: number) => {
     // Save to database
@@ -310,13 +314,16 @@ export default function HungerGamesSimulator() {
     setCurrentGameId(gameId)
     setPreviousEventCount(0)
 
-    // Initialize game with current districts and sponsors
-    const newState: GameState = initializeGame(sponsors, gameState.districts)
+    // Start game with current tributes, districts, and sponsors
     const gameReadyState: GameState = {
-      ...newState,
+      ...gameState,
       gameStarted: true,
       currentTurn: 1,
-      currentPhase: "day"
+      currentPhase: "day",
+      sponsors: sponsors, // Update with latest sponsors
+      events: [], // Clear any previous events
+      isGameOver: false,
+      winner: null
     }
 
     setGameState(gameReadyState)
@@ -329,8 +336,8 @@ export default function HungerGamesSimulator() {
     })
 
     // Save tributes to database
-    await saveTributes(gameId, newState.tributes)
-  }, [gameState])
+    await saveTributes(gameId, gameState.tributes)
+  }, [gameState, sponsors])
 
   const handleSimulateTurn = useCallback(async () => {
     if (!currentGameId) return
