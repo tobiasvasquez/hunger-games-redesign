@@ -16,7 +16,7 @@ import { NightSummary } from "@/components/night-summary"
 import { DaySummary } from "@/components/day-summary"
 import { playKillSound, playCannonSound } from "@/lib/sounds"
 import { initializeGame, initializeGameWithCharacters, simulateTurn, advancePhase } from "@/lib/game-engine"
-import type { GameState, Character, Sponsor, GameEvent, CustomEventTemplate } from "@/lib/game-types"
+import type { GameState, Character, Sponsor, GameEvent, CustomEventTemplate, Tribute } from "@/lib/game-types"
 import { getEventTemplates } from "@/lib/event-templates-persistence"
 import { EventTemplateManager } from "@/components/event-template-manager"
 import { GameTutorial } from "@/components/game-tutorial"
@@ -223,20 +223,53 @@ export default function HungerGamesSimulator() {
   }, [supabase])
 
   const handleAssignTribute = useCallback((district: number, slot: number, character: Character | null) => {
-    setGameState(prev => ({
-      ...prev,
-      tributes: prev.tributes.map(t => {
-        if (t.district === district && t.slot === slot) {
-          return {
-            ...t,
-            name: character?.name || `Tributo ${district}-${slot + 1}`,
-            characterId: character?.id,
-            imageUrl: character?.image_url,
+    setGameState(prev => {
+      let newTributes = [...prev.tributes]
+
+      if (character) {
+        // Add or update tribute
+        const existingTribute = newTributes.find(t => t.district === district && t.slot === slot)
+        if (existingTribute) {
+          // Update existing tribute
+          newTributes = newTributes.map(t =>
+            t.district === district && t.slot === slot
+              ? {
+                  ...t,
+                  name: character.name,
+                  characterId: character.id,
+                  imageUrl: character.image_url,
+                }
+              : t
+          )
+        } else {
+          // Create new tribute
+          const newTribute: Tribute = {
+            id: Math.random().toString(36).substring(2, 15),
+            name: character.name,
+            district,
+            slot,
+            avatar: `bg-slate-600`, // Will be updated based on district
+            imageUrl: character.image_url,
+            characterId: character.id,
+            isAlive: true,
+            kills: 0,
+            health: 60,
+            status: "healthy",
+            allies: [],
+            inventory: [],
           }
+          newTributes.push(newTribute)
         }
-        return t
-      })
-    }))
+      } else {
+        // Remove tribute if character is null
+        newTributes = newTributes.filter(t => !(t.district === district && t.slot === slot))
+      }
+
+      return {
+        ...prev,
+        tributes: newTributes
+      }
+    })
   }, [])
 
   const handleRandomizeTributes = useCallback(() => {
@@ -707,30 +740,35 @@ export default function HungerGamesSimulator() {
 
           {/* Main Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-            {/* Districts */}
-            <div className="lg:col-span-3 space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="font-serif text-base font-bold text-foreground">
-                  Tributos por Distrito
-                </h2>
-                <span className="text-xs text-muted-foreground">
-                  {aliveTributes}/{gameState.tributes.length} vivos
-                </span>
-              </div>
-              
-              <div data-tutorial="districts-grid">
-                <DistrictGrid
-                  tributes={gameState.tributes}
-                  districts={gameState.districts}
-                  onTributeNameChange={handleTributeNameChange}
-                  onDistrictNameChange={handleDistrictNameChange}
-                  editable={!gameState.gameStarted}
-                />
-              </div>
-            </div>
+            {/* Districts - Only show when there are tributes */}
+            {gameState.tributes.length > 0 && (
+              <div className="lg:col-span-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-serif text-base font-bold text-foreground">
+                    Tributos por Distrito
+                  </h2>
+                  <span className="text-xs text-muted-foreground">
+                    {aliveTributes}/{gameState.tributes.length} vivos
+                  </span>
+                </div>
 
-            {/* Event Feed */}
-            <div className="lg:col-span-1 h-[400px] lg:h-auto lg:min-h-[500px]" data-tutorial="event-feed">
+                <div data-tutorial="districts-grid">
+                  <DistrictGrid
+                    tributes={gameState.tributes}
+                    districts={gameState.districts}
+                    onTributeNameChange={handleTributeNameChange}
+                    onDistrictNameChange={handleDistrictNameChange}
+                    editable={!gameState.gameStarted}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Event Feed - Adjust column span when no districts */}
+            <div className={cn(
+              "h-[400px] lg:h-auto lg:min-h-[500px]",
+              gameState.tributes.length > 0 ? "lg:col-span-1" : "lg:col-span-4"
+            )} data-tutorial="event-feed">
               <EventFeed
                 events={gameState.events}
                 currentTurn={gameState.currentTurn}

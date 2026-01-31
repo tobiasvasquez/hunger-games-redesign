@@ -34,6 +34,22 @@ export function DistrictGrid({
     return getTributesByDistrict(district).filter(t => t.isAlive).length
   }
 
+  const getTotalCount = (district: number) => {
+    return getTributesByDistrict(district).length
+  }
+
+  // Dynamic grid classes based on number of districts
+  const getGridClasses = () => {
+    const count = districts.length
+    if (count === 1) return "grid-cols-1"
+    if (count === 2) return "grid-cols-1 md:grid-cols-2"
+    if (count === 3) return "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+    if (count === 4) return "grid-cols-1 md:grid-cols-2 lg:grid-cols-4"
+    if (count <= 6) return "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+    if (count <= 8) return "grid-cols-1 md:grid-cols-2 lg:grid-cols-4"
+    return "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+  }
+
   const getDistrictName = (districtId: number) => {
     return districts.find(d => d.id === districtId)?.name || `Distrito ${districtId}`
   }
@@ -60,13 +76,24 @@ export function DistrictGrid({
     }
   }
 
+  // Only show districts that have tributes
+  const districtsWithTributes = districts.filter(district =>
+    getTributesByDistrict(district.id).length > 0
+  )
+
+  // If no districts have tributes, render nothing
+  if (districtsWithTributes.length === 0) {
+    return null
+  }
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
-      {districts.map((district) => {
+    <div className={cn("grid gap-4", getGridClasses())}>
+      {districtsWithTributes.map((district) => {
         const districtTributes = getTributesByDistrict(district.id)
         const aliveCount = getAliveCount(district.id)
+        const totalCount = getTotalCount(district.id)
         const isEditing = editingDistrict === district.id
-        
+
         return (
           <div
             key={district.id}
@@ -119,7 +146,7 @@ export function DistrictGrid({
                 "text-xs font-medium shrink-0 ml-2",
                 aliveCount === 0 ? 'text-destructive' : 'text-muted-foreground'
               )}>
-                {aliveCount}/2
+                {aliveCount}/{totalCount}
               </span>
             </div>
 

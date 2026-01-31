@@ -119,32 +119,7 @@ export const DISTRICT_COLORS: Record<number, string> = {
   12: "bg-gray-500/10 border-gray-500/30",
 }
 
-export const DEFAULT_TRIBUTE_NAMES = [
-  // District 1
-  "Marvel", "Glimmer",
-  // District 2
-  "Cato", "Clove",
-  // District 3
-  "Tech", "Wire",
-  // District 4
-  "Finnick", "Annie",
-  // District 5
-  "Foxface", "Jason",
-  // District 6
-  "Porter", "Tamora",
-  // District 7
-  "Johanna", "Blight",
-  // District 8
-  "Cecelia", "Woof",
-  // District 9
-  "Grain", "Harvest",
-  // District 10
-  "Tanner", "Brandy",
-  // District 11
-  "Thresh", "Rue",
-  // District 12
-  "Katniss", "Peeta",
-]
+
 
 export const AVATAR_COLORS = [
   "bg-amber-600", "bg-rose-600", "bg-emerald-600", "bg-cyan-600",

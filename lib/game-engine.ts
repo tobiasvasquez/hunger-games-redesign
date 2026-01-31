@@ -1,5 +1,5 @@
 import type { Tribute, GameEvent, GameState, District, CustomEventTemplate, Ally, InventoryItem, Sponsor } from "./game-types"
-import { DEFAULT_TRIBUTE_NAMES, AVATAR_COLORS, DISTRICT_NAMES, DISTRICT_COLORS } from "./game-types"
+import { AVATAR_COLORS, DISTRICT_NAMES, DISTRICT_COLORS } from "./game-types"
 
 const DEFAULT_DISTRICTS: District[] = Array.from({ length: 12 }, (_, i) => ({
   id: i + 1,
@@ -139,26 +139,8 @@ const DEFAULT_SPONSORS: Sponsor[] = [
 ]
 
 export function initializeGame(sponsors: Sponsor[] = DEFAULT_SPONSORS, districts: District[] = DEFAULT_DISTRICTS): GameState {
+  // No tributes created until characters are assigned
   const tributes: Tribute[] = []
-
-  districts.forEach((district, districtIndex) => {
-    for (let slot = 0; slot < 2; slot++) {
-      const tributeIndex = districtIndex * 2 + slot
-      tributes.push({
-        id: generateUUID(),
-        name: DEFAULT_TRIBUTE_NAMES[tributeIndex] || `Tributo ${district.id}-${slot + 1}`,
-        district: district.id,
-        slot,
-        avatar: AVATAR_COLORS[districtIndex % AVATAR_COLORS.length],
-        isAlive: true,
-        kills: 0,
-        health: 60,
-        status: "healthy",
-        allies: [] as Ally[],
-        inventory: [] as InventoryItem[],
-      })
-    }
-  })
 
   return {
     tributes,
@@ -182,25 +164,31 @@ export function initializeGameWithCharacters(
   const shuffled = [...characters].sort(() => Math.random() - 0.5)
   const districts = customDistricts || DEFAULT_DISTRICTS
 
-  districts.forEach((district, districtIndex) => {
-    for (let slot = 0; slot < 2; slot++) {
-      const tributeIndex = districtIndex * 2 + slot
-      const char = shuffled[tributeIndex]
-      tributes.push({
-        id: generateUUID(),
-        name: char?.name || DEFAULT_TRIBUTE_NAMES[tributeIndex] || `Tributo ${district.id}-${slot + 1}`,
-        district: district.id,
-        slot,
-        avatar: AVATAR_COLORS[districtIndex % AVATAR_COLORS.length],
-        imageUrl: char?.image_url,
-        characterId: char?.id,
-        isAlive: true,
-        kills: 0,
-        health: 60,
-        status: "healthy",
-        allies: [],
-        inventory: [],
-      })
+  // Only create tribute objects for characters that exist
+  shuffled.forEach((char, index) => {
+    if (char) {
+      // Assign to districts in order
+      const districtIndex = Math.floor(index / 2)
+      const slot = index % 2
+      const district = districts[districtIndex]
+
+      if (district) {
+        tributes.push({
+          id: generateUUID(),
+          name: char.name,
+          district: district.id,
+          slot,
+          avatar: AVATAR_COLORS[districtIndex % AVATAR_COLORS.length],
+          imageUrl: char.image_url,
+          characterId: char.id,
+          isAlive: true,
+          kills: 0,
+          health: 60,
+          status: "healthy",
+          allies: [],
+          inventory: [],
+        })
+      }
     }
   })
 

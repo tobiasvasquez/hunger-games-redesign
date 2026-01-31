@@ -145,20 +145,19 @@ export function TributeSelector({
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
-          {characters.length < 24 ? (
+          {characters.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p className="text-lg font-medium">Necesitas al menos 24 personajes</p>
+              <p className="text-lg font-medium">No hay personajes disponibles</p>
               <p className="text-sm mt-1">
-                Tienes {characters.length} personaje{characters.length !== 1 ? "s" : ""}. 
-                Agrega {24 - characters.length} mas para continuar.
+                Agrega personajes desde el gestor de personajes para poder asignarlos como tributos.
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {districts.map((district) => {
                 const isEditing = editingDistrict === district.id
-                
+
                 return (
                   <div
                     key={district.id}
@@ -200,13 +199,13 @@ export function TributeSelector({
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="space-y-2">
                       {[0, 1].map((slot) => {
                         const tribute = getTributeForSlot(district.id, slot)
                         const character = getCharacterForTribute(tribute)
                         const isSelected = selectedSlot?.district === district.id && selectedSlot?.slot === slot
-                        
+
                         return (
                           <button
                             key={slot}
@@ -220,13 +219,13 @@ export function TributeSelector({
                           >
                             <div className={cn(
                               "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden",
-                              character 
-                                ? "bg-gradient-to-br from-primary/50 to-accent/50" 
+                              character
+                                ? "bg-gradient-to-br from-primary/50 to-accent/50"
                                 : "bg-muted border-2 border-dashed border-muted-foreground/30"
                             )}>
                               {character?.image_url ? (
-                                <img 
-                                  src={character.image_url || "/placeholder.svg"} 
+                                <img
+                                  src={character.image_url || "/placeholder.svg"}
                                   alt={character.name}
                                   className="w-full h-full object-cover"
                                 />
@@ -322,19 +321,19 @@ export function TributeSelector({
         <div className="p-4 border-t border-border bg-secondary/30 flex items-center justify-between">
           <div className="flex flex-col">
             <span className="text-sm text-muted-foreground">
-              {tributes.filter(t => t.characterId).length} de 24 tributos asignados
+              {tributes.filter(t => t.characterId).length} tributos asignados
             </span>
-            {characters.length < 24 && (
+            {tributes.filter(t => t.characterId).length === 0 && (
               <span className="text-xs text-amber-400 mt-1">
-                ⚠️ Necesitas {24 - characters.length} personaje{24 - characters.length !== 1 ? "s" : ""} más para completar todos los distritos
+                Asigna al menos un personaje para comenzar el juego
               </span>
             )}
           </div>
           <Button
             onClick={onConfirm}
-            disabled={!allSlotsFilled}
+            disabled={tributes.filter(t => t.characterId).length === 0}
             className="cursor-pointer bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-            title={!allSlotsFilled ? "Asigna personajes a todos los slots para continuar" : ""}
+            title={tributes.filter(t => t.characterId).length === 0 ? "Asigna al menos un personaje para continuar" : ""}
           >
             <Check className="w-4 h-4 mr-2" />
             Confirmar Tributos
