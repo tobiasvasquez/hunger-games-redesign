@@ -78,6 +78,51 @@ export function GameTutorial({ onClose }: GameTutorialProps) {
             side: 'top',
             align: 'center'
           }
+        },
+        {
+          element: '[data-tutorial="game-controls"]',
+          popover: {
+            title: 'Nuevas Funcionalidades: Resúmenes Diarios',
+            description: '¡Novedad! Al final de cada día y noche, verás un resumen detallado de todos los eventos ocurridos, incluyendo muertes con efectos de sonido de cañón. Los resúmenes te permiten procesar la información antes de continuar.',
+            side: 'top',
+            align: 'center'
+          }
+        },
+        {
+          element: '[data-tutorial="character-button"]',
+          popover: {
+            title: 'Sistema de Inventario y Patrocinadores',
+            description: '¡Novedad! Los tributos ahora pueden recibir items de patrocinadores del Capitolio: armas, botiquines, comida, armadura y herramientas. Estos items afectan el combate y la supervivencia.',
+            side: 'bottom',
+            align: 'center'
+          }
+        },
+        {
+          element: '[data-tutorial="tribute-button"]',
+          popover: {
+            title: 'Sistema de Alianzas',
+            description: '¡Novedad! Los tributos pueden formar alianzas entre sí. Las alianzas afectan cómo se comportan los eventos y quién recibe items de patrocinadores.',
+            side: 'bottom',
+            align: 'center'
+          }
+        },
+        {
+          element: '[data-tutorial="game-controls"]',
+          popover: {
+            title: 'Persistencia de Juegos',
+            description: '¡Novedad! Ahora puedes guardar y cargar tus juegos. Tus partidas se almacenan en la base de datos y puedes continuarlas en cualquier momento.',
+            side: 'top',
+            align: 'center'
+          }
+        },
+        {
+          element: '[data-tutorial="event-feed"]',
+          popover: {
+            title: 'Eventos Personalizados',
+            description: '¡Novedad! El sistema de eventos ahora usa plantillas personalizables almacenadas en la base de datos. Cada juego puede tener eventos únicos y personalizados.',
+            side: 'left',
+            align: 'center'
+          }
         }
       ],
       onDestroyStarted: () => {

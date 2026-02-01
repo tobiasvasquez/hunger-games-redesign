@@ -41,7 +41,7 @@ export interface Tribute {
   inventory: InventoryItem[] // Items received from sponsors
 }
 
-export type EventType = "kill" | "sponsor" | "shelter" | "injury" | "alliance" | "trap" | "escape" | "neutral" | "betrayal" | "theft" | "exploration"
+export type EventType = "kill" | "sponsor" | "shelter" | "injury" | "alliance" | "trap" | "escape" | "neutral" | "betrayal" | "theft" | "exploration" | "romance"
 
 export interface GameEvent {
   id: string

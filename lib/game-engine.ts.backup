@@ -532,69 +532,6 @@ export function simulateTurn(state: GameState): GameState {
           processedTributes.add(target.id)
         }
       }
-    } else if (eventCategory.type === "romance" && template.includes("{tribute2}")) {
-      // ROMANCE SYSTEM: Create romantic connections between tributes
-      let validPartners = aliveTributes.filter(
-        t => t.id !== tribute.id && !processedTributes.has(t.id)
-      )
-
-      // Prioritize existing allies for romantic connections
-      const allyPartners = validPartners.filter(partner =>
-        tribute.allies.some(ally => ally.allyId === partner.id)
-      )
-
-      let partner
-      if (allyPartners.length > 0 && Math.random() > 0.3) {
-        // 70% chance to romance existing allies
-        partner = getRandomElement(allyPartners)
-      } else {
-        partner = getRandomElement(validPartners)
-      }
-
-      if (validPartners.length > 0 && Math.random() > 0.6) {
-        // Create mutual romantic ally relationship
-        const tributeInState = newState.tributes.find(t => t.id === tribute.id)
-        const partnerInState = newState.tributes.find(t => t.id === partner.id)
-
-        if (tributeInState && partnerInState) {
-          // Add romantic ally relationship for both tributes
-          const existingAlly1 = tributeInState.allies.find(a => a.allyId === partner.id)
-          if (!existingAlly1) {
-            tributeInState.allies.push({
-              allyId: partner.id,
-              reason: "romance"
-            })
-          }
-
-          const existingAlly2 = partnerInState.allies.find(a => a.allyId === tribute.id)
-          if (!existingAlly2) {
-            partnerInState.allies.push({
-              allyId: tribute.id,
-              reason: "romance"
-            })
-          }
-
-          // Romance can provide a small health boost (emotional support)
-          tributeInState.health = Math.min(100, tributeInState.health + 5)
-          partnerInState.health = Math.min(100, partnerInState.health + 5)
-        }
-
-        newEvents.push({
-          id: generateUUID(),
-          turn: newState.currentTurn,
-          phase: newState.currentPhase,
-          type: "romance",
-          description: template
-            .replace("{tribute1}", tribute.name)
-            .replace("{tribute2}", partner.name),
-          involvedTributes: [tribute.id, partner.id],
-          timestamp: new Date(),
-        })
-
-        processedTributes.add(tribute.id)
-        processedTributes.add(partner.id)
-      }
-    } else if (eventCategory.type === "exploration") {
     } else if (eventCategory.type === "exploration") {
       // Exploration events can provide benefits
       if (Math.random() > 0.6) {

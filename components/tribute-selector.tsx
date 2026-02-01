@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { X, Shuffle, Check, Users, Pencil, Trash2, HelpCircle } from "lucide-react"
+import { X, Shuffle, Check, Users, Pencil, Trash2, HelpCircle, MapPin } from "lucide-react"
 import type { Character, Tribute, District } from "@/lib/game-types"
 import { cn } from "@/lib/utils"
 
@@ -107,28 +107,36 @@ export function TributeSelector({
             </h2>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                // Clear all assignments
-                districts.forEach(district => {
-                  [0, 1].forEach(slot => {
-                    onAssignTribute(district.id, slot, null)
+            {districts.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  // Clear all assignments
+                  districts.forEach(district => {
+                    [0, 1].forEach(slot => {
+                      onAssignTribute(district.id, slot, null)
+                    })
                   })
-                })
-              }}
-              className="cursor-pointer bg-transparent"
-              title="Quitar todas las asignaciones de personajes"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Limpiar Todo
-            </Button>
+                }}
+                className="cursor-pointer bg-transparent"
+                title="Quitar todas las asignaciones de personajes"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Limpiar Todo
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={onRandomize}
-              disabled={characters.length === 0}
+              disabled={characters.length === 0 || districts.length === 0}
               className="cursor-pointer bg-transparent"
-              title={characters.length === 0 ? "Agrega personajes para poder aleatorizar" : "Asignar personajes aleatoriamente"}
+              title={
+                districts.length === 0
+                  ? "Agrega distritos para poder aleatorizar"
+                  : characters.length === 0
+                  ? "Agrega personajes para poder aleatorizar"
+                  : "Asignar personajes aleatoriamente"
+              }
             >
               <Shuffle className="w-4 h-4 mr-2" />
               Aleatorio
@@ -145,7 +153,15 @@ export function TributeSelector({
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
-          {characters.length === 0 ? (
+          {districts.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <MapPin className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p className="text-lg font-medium">No hay distritos configurados</p>
+              <p className="text-sm mt-1">
+                Agrega distritos desde el gestor de distritos para poder asignar tributos.
+              </p>
+            </div>
+          ) : characters.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p className="text-lg font-medium">No hay personajes disponibles</p>

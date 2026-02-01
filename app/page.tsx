@@ -78,7 +78,7 @@ function SparklesBackground() {
 }
 
 export default function HungerGamesSimulator() {
-  const [gameState, setGameState] = useState<GameState>(initializeGame)
+  const [gameState, setGameState] = useState<GameState>(() => initializeGame([], []))
   const [isSimulating, setIsSimulating] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
   const [simulationController, setSimulationController] = useState<{ abort: () => void } | null>(null)
@@ -100,6 +100,7 @@ export default function HungerGamesSimulator() {
   const [currentGameId, setCurrentGameId] = useState<string | null>(null)
   const [previousEventCount, setPreviousEventCount] = useState(0)
   const [customEventTemplates, setCustomEventTemplates] = useState<CustomEventTemplate[]>([])
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(true)
 
   // Refs for simulation control
   const pauseRef = useRef<() => void>(() => {})
@@ -153,6 +154,7 @@ export default function HungerGamesSimulator() {
   // Load custom event templates
   useEffect(() => {
     async function loadTemplates() {
+      setIsLoadingTemplates(true)
       const templates = await getEventTemplates()
       setCustomEventTemplates(templates)
       // Update game state with custom templates
@@ -160,6 +162,7 @@ export default function HungerGamesSimulator() {
         ...prev,
         customEventTemplates: templates
       }))
+      setIsLoadingTemplates(false)
     }
     loadTemplates()
   }, [])
@@ -314,13 +317,14 @@ export default function HungerGamesSimulator() {
     setCurrentGameId(gameId)
     setPreviousEventCount(0)
 
-    // Start game with current tributes, districts, and sponsors
+    // Start game with current tributes, districts, sponsors, and templates
     const gameReadyState: GameState = {
       ...gameState,
       gameStarted: true,
       currentTurn: 1,
       currentPhase: "day",
       sponsors: sponsors, // Update with latest sponsors
+      customEventTemplates: customEventTemplates, // Include loaded templates
       events: [], // Clear any previous events
       isGameOver: false,
       winner: null
@@ -337,28 +341,29 @@ export default function HungerGamesSimulator() {
 
     // Save tributes to database
     await saveTributes(gameId, gameState.tributes)
-  }, [gameState, sponsors])
+  }, [gameState, sponsors, customEventTemplates])
 
   const handleSimulateTurn = useCallback(async () => {
-    if (!currentGameId) return
+    // Allow simulation even without database connection for testing
+    // if (!currentGameId) return
 
     setIsSimulating(true)
-    
+
     // Check current phase
     const wasDay = gameState.currentPhase === "day"
     const wasNight = gameState.currentPhase === "night"
-    
+
     // Simulate turn and get new state with events
     const stateAfterTurn = simulateTurn(gameState)
     const newEvents = stateAfterTurn.events.slice(previousEventCount)
-    
+
     // Note: Death sounds now play when summary modals open
-    
+
     setGameState(stateAfterTurn)
     setPreviousEventCount(stateAfterTurn.events.length)
 
-    // Save new events to database
-    if (newEvents.length > 0) {
+    // Save new events to database (only if gameId exists)
+    if (currentGameId && newEvents.length > 0) {
       await saveEvents(currentGameId, newEvents)
     }
 
@@ -405,17 +410,19 @@ export default function HungerGamesSimulator() {
     
     setGameState(stateAfterPhase)
 
-    // Update game state in database
-    await updateGame(currentGameId, {
-      current_turn: stateAfterPhase.currentTurn,
-      current_phase: stateAfterPhase.currentPhase,
-      status: stateAfterPhase.isGameOver ? "finished" : "in_progress",
-      winner_id: stateAfterPhase.winner?.id || null,
-    })
+    // Update game state in database (only if gameId exists)
+    if (currentGameId) {
+      await updateGame(currentGameId, {
+        current_turn: stateAfterPhase.currentTurn,
+        current_phase: stateAfterPhase.currentPhase,
+        status: stateAfterPhase.isGameOver ? "finished" : "in_progress",
+        winner_id: stateAfterPhase.winner?.id || null,
+      })
 
-    // Update tributes if game is over
-    if (stateAfterPhase.isGameOver) {
-      await saveTributes(currentGameId, stateAfterPhase.tributes)
+      // Update tributes if game is over
+      if (stateAfterPhase.isGameOver) {
+        await saveTributes(currentGameId, stateAfterPhase.tributes)
+      }
     }
 
     setIsSimulating(false)
@@ -575,8 +582,9 @@ export default function HungerGamesSimulator() {
       newState = initializeGameWithCharacters(characters, gameState.districts)
     } else {
       newState = {
-        ...initializeGame(),
-        districts: gameState.districts
+        ...initializeGame([], []),
+        districts: gameState.districts,
+        sponsors: gameState.sponsors
       }
     }
 
@@ -739,6 +747,7 @@ export default function HungerGamesSimulator() {
               onReset={handleReset}
               isSimulating={isSimulating}
               isPaused={isPaused}
+              isLoadingTemplates={isLoadingTemplates}
               pauseRef={pauseRef}
               resumeRef={resumeRef}
               stopRef={stopRef}

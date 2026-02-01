@@ -208,3 +208,128 @@ INSERT INTO event_templates (template, type, phase, requires_killer, requires_vi
 ('{tribute} cae en un foso de ácido del Capitolio.', 'kill', 'night', false, false, false, false),
 ('{tribute} es electrocutado por cables de alta tensión del Capitolio.', 'kill', 'night', false, false, false, false),
 ('{tribute} es atacado por un enjambre de avispas mutantes venenosas.', 'kill', 'night', false, false, false, false);
+
+-- ============================================
+-- EVENTOS DE ALIANZA CON TOQUE ROMÁNTICO (DÍA)
+-- ============================================
+
+INSERT INTO event_templates (template, type, phase, requires_killer, requires_victim, requires_two_tributes, is_custom) VALUES
+('{tribute1} y {tribute2} comparten un momento de silencio mirando el atardecer, sus hombros rozándose.', 'alliance', 'day', false, false, true, false),
+('{tribute1} venda una herida de {tribute2} con cuidado, sus dedos demorándose más de lo necesario.', 'alliance', 'day', false, false, true, false),
+('{tribute1} confiesa a {tribute2} que en otra vida hubieran sido amigos... o algo más.', 'alliance', 'day', false, false, true, false),
+('{tribute1} y {tribute2} se toman de la mano brevemente para darse ánimos antes de seguir explorando.', 'alliance', 'day', false, false, true, false),
+('{tribute1} le regala a {tribute2} una flor silvestre que encontró, diciendo que le recuerda a su sonrisa.', 'alliance', 'day', false, false, true, false),
+('{tribute1} protege a {tribute2} de un peligro menor y luego se miran fijamente, sin palabras.', 'alliance', 'day', false, false, true, false),
+('{tribute1} y {tribute2} comparten una fruta, alimentándose mutuamente en un gesto íntimo.', 'alliance', 'day', false, false, true, false),
+('{tribute1} le promete a {tribute2} que si uno sale vivo, llevará el recuerdo del otro siempre.', 'alliance', 'day', false, false, true, false),
+('{tribute1} se sonroja cuando {tribute2} le dice que es la persona más valiente que ha conocido.', 'alliance', 'day', false, false, true, false),
+('{tribute1} y {tribute2} se abrazan fuerte tras escapar de un peligro, sin querer soltarse.', 'alliance', 'day', false, false, true, false);
+
+-- ============================================
+-- EVENTOS DE ALIANZA CON TOQUE ROMÁNTICO (NOCHE)
+-- ============================================
+
+INSERT INTO event_templates (template, type, phase, requires_killer, requires_victim, requires_two_tributes, is_custom) VALUES
+('{tribute1} y {tribute2} se acurrucan juntos para compartir calor durante la fría noche.', 'alliance', 'night', false, false, true, false),
+('{tribute1} susurra a {tribute2} que no quiere perderlo/a mientras velan el sueño del otro.', 'alliance', 'night', false, false, true, false),
+('{tribute1} y {tribute2} hablan en voz baja de sus sueños antes de los Juegos, acercándose más.', 'alliance', 'night', false, false, true, false),
+('{tribute1} acaricia el cabello de {tribute2} para calmarlo/a tras una pesadilla.', 'alliance', 'night', false, false, true, false),
+('{tribute1} y {tribute2} se miran a los ojos bajo la luz de la luna, como si el mundo no existiera.', 'alliance', 'night', false, false, true, false),
+('{tribute1} le dice a {tribute2} en un susurro: "Si morimos, al menos no fue solos".', 'alliance', 'night', false, false, true, false),
+('{tribute1} y {tribute2} entrelazan sus dedos mientras hacen guardia, un gesto silencioso de confianza.', 'alliance', 'night', false, false, true, false),
+('{tribute1} besa suavemente la frente de {tribute2} creyendo que duerme, pero {tribute2} lo/a siente.', 'alliance', 'night', false, false, true, false),
+('{tribute1} y {tribute2} comparten un beso impulsivo bajo las estrellas, sabiendo que puede ser el último.', 'alliance', 'night', false, false, true, false),
+('{tribute1} confiesa a {tribute2} que siente algo que nunca esperó en la arena.', 'alliance', 'night', false, false, true, false);
+
+-- ============================================
+-- EVENTOS DE DÍA - Nuevos
+-- ============================================
+
+-- Neutral (Día) - adicionales
+INSERT INTO event_templates (template, type, phase, requires_killer, requires_victim, requires_two_tributes, is_custom) VALUES
+('{tribute} recolecta musgo para usar como venda improvisada.', 'neutral', 'day', false, false, false, false),
+('{tribute} prueba diferentes plantas para identificar cuáles son comestibles.', 'neutral', 'day', false, false, false, false),
+('{tribute} observa aves migratorias para predecir cambios de clima.', 'neutral', 'day', false, false, false, false),
+('{tribute} talla una lanza improvisada con una rama afilada.', 'neutral', 'day', false, false, false, false),
+('{tribute} encuentra un nido con huevos de ave comestibles.', 'neutral', 'day', false, false, false, false),
+('{tribute} se frota barro en la piel para camuflarse mejor.', 'neutral', 'day', false, false, false, false),
+('{tribute} detecta humo lejano y decide si investigarlo o huir.', 'neutral', 'day', false, false, false, false);
+
+-- Sponsor (Día) - adicionales
+INSERT INTO event_templates (template, type, phase, requires_killer, requires_victim, requires_two_tributes, is_custom) VALUES
+('{tribute} recibe un sleeping bag impermeable de patrocinadores.', 'sponsor', 'day', false, false, false, false),
+('{tribute} recibe insecticida potente contra mutos insectoides.', 'sponsor', 'day', false, false, false, false),
+('{tribute} recibe una linterna solar de sus patrocinadores.', 'sponsor', 'day', false, false, false, false),
+('{tribute} recibe antídotos contra venenos comunes del Capitolio.', 'sponsor', 'day', false, false, false, false),
+('{tribute} recibe un silbato ultrasónico para repeler mutos.', 'sponsor', 'day', false, false, false, false);
+
+-- Injury (Día) - adicionales
+INSERT INTO event_templates (template, type, phase, requires_killer, requires_victim, requires_two_tributes, is_custom) VALUES
+('{tribute} sufre una insolación tras horas sin sombra.', 'injury', 'day', false, false, false, false),
+('{tribute} es atacado por hormigas carnívoras mutantes y sufre picaduras graves.', 'injury', 'day', false, false, false, false),
+('{tribute} se intoxica levemente al inhalar esporas tóxicas de un hongo.', 'injury', 'day', false, false, false, false),
+('{tribute} se disloca un hombro al trepar una pared rocosa.', 'injury', 'day', false, false, false, false);
+
+-- Deadly Events (Día) - adicionales
+INSERT INTO event_templates (template, type, phase, requires_killer, requires_victim, requires_two_tributes, is_custom) VALUES
+('{tribute} es alcanzado por un enjambre de avispas mutantes rastreadoras. El cañón suena.', 'kill', 'day', false, false, false, false),
+('{tribute} cae en arenas movedizas creadas por el Capitolio y desaparece.', 'kill', 'day', false, false, false, false),
+('{tribute} es quemado vivo por una lluvia de fuego líquido lanzada desde el cielo.', 'kill', 'day', false, false, false, false),
+('{tribute} despierta una manada de ciervos mutantes con cuernos envenenados.', 'kill', 'day', false, false, false, false),
+('{tribute} es atrapado por raíces vivientes mutantes que lo estrangulan.', 'kill', 'day', false, false, false, false);
+
+-- Alliance (Día) - adicionales
+INSERT INTO event_templates (template, type, phase, requires_killer, requires_victim, requires_two_tributes, is_custom) VALUES
+('{tribute1} enseña a {tribute2} técnicas de sigilo del Distrito 6.', 'alliance', 'day', false, false, true, false),
+('{tribute1} y {tribute2} planean una emboscada conjunta contra otro tributo.', 'alliance', 'day', false, false, true, false),
+('{tribute1} salva a {tribute2} de una trampa natural y ganan confianza mutua.', 'alliance', 'day', false, false, true, false);
+
+-- Theft (Día) - adicionales
+INSERT INTO event_templates (template, type, phase, requires_killer, requires_victim, requires_two_tributes, is_custom) VALUES
+('{tribute1} distrae a {tribute2} con ruido falso y le roba su mochila.', 'theft', 'day', false, false, true, false),
+('{tribute1} intercambia falsamente un objeto inútil por algo valioso de {tribute2}.', 'theft', 'day', false, false, true, false);
+
+-- ============================================
+-- EVENTOS DE NOCHE - Nuevos
+-- ============================================
+
+-- Kill (Noche) - adicionales
+INSERT INTO event_templates (template, type, phase, requires_killer, requires_victim, requires_two_tributes, is_custom) VALUES
+('{killer} degüella silenciosamente a {victim} mientras ronca.', 'kill', 'night', true, true, false, false),
+('{killer} envenena la cantimplora de {victim} durante la noche.', 'kill', 'night', true, true, false, false),
+('{killer} asfixia a {victim} con su propia manta mientras duerme.', 'kill', 'night', true, true, false, false);
+
+-- Trap (Noche) - adicionales
+INSERT INTO event_templates (template, type, phase, requires_killer, requires_victim, requires_two_tributes, is_custom) VALUES
+('{tribute} activa sensores de movimiento y casi es alcanzado por flechas automáticas.', 'trap', 'night', false, false, false, false),
+('{tribute} entra en una zona de infrasonidos que le provoca alucinaciones terroríficas.', 'trap', 'night', false, false, false, false),
+('{tribute} es perseguido por drones luminosos que revelan su posición.', 'trap', 'night', false, false, false, false);
+
+-- Neutral (Noche) - adicionales
+INSERT INTO event_templates (template, type, phase, requires_killer, requires_victim, requires_two_tributes, is_custom) VALUES
+('{tribute} tiene pesadillas recurrentes con los tributos que ya murieron.', 'neutral', 'night', false, false, false, false),
+('{tribute} ve fuegos artificiales lejanos anunciando patrocinios masivos.', 'neutral', 'night', false, false, false, false),
+('{tribute} llora en silencio recordando su hogar mientras ve el cielo.', 'neutral', 'night', false, false, false, false);
+
+-- Betrayal (Noche) - adicionales
+INSERT INTO event_templates (template, type, phase, requires_killer, requires_victim, requires_two_tributes, is_custom) VALUES
+('{tribute1} finge dormir y apuñala a {tribute2} por la espalda.', 'betrayal', 'night', false, false, true, false),
+('{tribute1} entrega la ubicación de {tribute2} a otro tributo a cambio de protección.', 'betrayal', 'night', false, false, true, false),
+('{tribute1} sabotea el refugio de {tribute2} para que colapse mientras duerme.', 'betrayal', 'night', false, false, true, false);
+
+-- Alliance (Noche) - adicionales
+INSERT INTO event_templates (template, type, phase, requires_killer, requires_victim, requires_two_tributes, is_custom) VALUES
+('{tribute1} y {tribute2} comparten historias de sus distritos para mantenerse despiertos.', 'alliance', 'night', false, false, true, false),
+('{tribute1} cura las heridas de {tribute2} durante la noche.', 'alliance', 'night', false, false, true, false);
+
+-- Injury (Noche) - adicionales
+INSERT INTO event_templates (template, type, phase, requires_killer, requires_victim, requires_two_tributes, is_custom) VALUES
+('{tribute} sufre hipotermia al bajar drásticamente la temperatura por la noche.', 'injury', 'night', false, false, false, false),
+('{tribute} es mordido por un roedor mutante mientras duerme.', 'injury', 'night', false, false, false, false);
+
+-- Deadly Events (Noche) - adicionales
+INSERT INTO event_templates (template, type, phase, requires_killer, requires_victim, requires_two_tributes, is_custom) VALUES
+('{tribute} es congelado vivo por una tormenta polar repentina del Capitolio.', 'kill', 'night', false, false, false, false),
+('{tribute} es atacado por un enjambre de polillas luminosas venenosas.', 'kill', 'night', false, false, false, false),
+('{tribute} cae en un lago congelado que se rompe bajo su peso.', 'kill', 'night', false, false, false, false),
+('{tribute} es alcanzado por niebla tóxica que se arrastra por el suelo.', 'kill', 'night', false, false, false, false);

@@ -16,6 +16,7 @@ interface GameControlsProps {
   onReset: () => void
   isSimulating: boolean
   isPaused: boolean
+  isLoadingTemplates?: boolean
   pauseRef: React.MutableRefObject<() => void>
   resumeRef: React.MutableRefObject<() => void>
   stopRef: React.MutableRefObject<() => void>
@@ -32,6 +33,7 @@ export function GameControls({
   onReset,
   isSimulating,
   isPaused,
+  isLoadingTemplates = false,
   pauseRef,
   resumeRef,
   stopRef,
@@ -108,7 +110,7 @@ export function GameControls({
           <>
             <Button
               onClick={onSimulateTurn}
-              disabled={gameState.isGameOver || isSimulating}
+              disabled={gameState.isGameOver || isSimulating || isLoadingTemplates}
               variant="default"
               className="bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer disabled:cursor-not-allowed"
             >
@@ -158,7 +160,7 @@ export function GameControls({
             ) : (
               <Button
                 onClick={onSimulateToEnd}
-                disabled={gameState.isGameOver}
+                disabled={gameState.isGameOver || isLoadingTemplates}
                 variant="secondary"
                 className="cursor-pointer disabled:cursor-not-allowed"
               >

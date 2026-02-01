@@ -1,0 +1,4 @@
+TODO:
+
+
+Invertir el orden de como se muestra las muertes y los eventos en el modal al terminar el dia / noche 

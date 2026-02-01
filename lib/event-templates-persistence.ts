@@ -9,7 +9,17 @@ function getSupabase() {
  * Get all custom event templates
  */
 export async function getEventTemplates(): Promise<CustomEventTemplate[]> {
+  console.log("getEventTemplates: Starting to load event templates")
   const supabase = getSupabase()
+  console.log("getEventTemplates: Supabase client created")
+
+  // First, let's check if the table exists by trying a simple count
+  const { count, error: countError } = await supabase
+    .from("event_templates")
+    .select("*", { count: "exact", head: true })
+
+  console.log("getEventTemplates: Table check", { count, countError })
+
   const { data, error } = await supabase
     .from("event_templates")
     .select("*")
@@ -17,12 +27,24 @@ export async function getEventTemplates(): Promise<CustomEventTemplate[]> {
     .order("phase", { ascending: true })
     .order("created_at", { ascending: true })
 
+  console.log("getEventTemplates: Query executed", { 
+    dataLength: data?.length || 0, 
+    error,
+    firstTemplate: data?.[0] 
+  })
+
   if (error) {
     console.error("Error loading event templates:", error)
+    console.error("Error details:", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint
+    })
     return []
   }
 
-  return (data || []).map((template) => ({
+  const result = (data || []).map((template) => ({
     id: template.id,
     template: template.template,
     type: template.type as CustomEventTemplate["type"],
@@ -31,6 +53,9 @@ export async function getEventTemplates(): Promise<CustomEventTemplate[]> {
     requiresVictim: template.requires_victim || false,
     requiresTwoTributes: template.requires_two_tributes || false,
   }))
+
+  console.log("getEventTemplates: Returning", result.length, "templates")
+  return result
 }
 
 /**
