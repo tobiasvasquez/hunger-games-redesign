@@ -1,6 +1,7 @@
 export interface Character {
   id: string
   name: string
+  gender: "male" | "female"
   image_url?: string
   created_at?: string
 }
@@ -33,6 +34,7 @@ export interface Tribute {
   avatar: string
   imageUrl?: string
   characterId?: string
+  gender: "male" | "female"
   isAlive: boolean
   kills: number
   health: number

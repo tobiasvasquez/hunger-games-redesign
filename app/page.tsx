@@ -167,11 +167,11 @@ export default function HungerGamesSimulator() {
     loadTemplates()
   }, [])
 
-  const handleAddCharacter = useCallback(async (name: string, imageUrl?: string) => {
+  const handleAddCharacter = useCallback(async (name: string, gender: "male" | "female", imageUrl?: string) => {
     // Save to database
     const { data, error } = await supabase
       .from("characters")
-      .insert([{ name, image_url: imageUrl }])
+      .insert([{ name, gender, image_url: imageUrl }])
       .select()
       .single()
 
@@ -258,6 +258,7 @@ export default function HungerGamesSimulator() {
             avatar: `bg-slate-600`, // Will be updated based on district
             imageUrl: character.image_url,
             characterId: character.id,
+            gender: character.gender,
             isAlive: true,
             kills: 0,
             health: 60,

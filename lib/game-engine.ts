@@ -1,4 +1,4 @@
-import type { Tribute, GameEvent, GameState, District, CustomEventTemplate, Ally, InventoryItem, Sponsor } from "./game-types"
+import type { Tribute, GameEvent, GameState, District, CustomEventTemplate, Ally, InventoryItem, Sponsor, Character } from "./game-types"
 import { AVATAR_COLORS, DISTRICT_NAMES, DISTRICT_COLORS } from "./game-types"
 
 
@@ -142,7 +142,7 @@ export function initializeGame(sponsors: Sponsor[], districts: District[]): Game
 }
 
 export function initializeGameWithCharacters(
-  characters: { id: string; name: string; image_url?: string }[],
+  characters: Character[],
   customDistricts?: District[],
   sponsors?: Sponsor[]
 ): GameState {
@@ -167,6 +167,7 @@ export function initializeGameWithCharacters(
           avatar: AVATAR_COLORS[districtIndex % AVATAR_COLORS.length],
           imageUrl: char.image_url,
           characterId: char.id,
+          gender: char.gender, // Use stored gender from character
           isAlive: true,
           kills: 0,
           health: 60,
@@ -282,16 +283,67 @@ export function simulateTurn(state: GameState): GameState {
         const victimInState = newState.tributes.find(t => t.id === victim.id)
 
         if (tributeInState && victimInState) {
+          // Check if killer has weapons for potential multi-kill
+          const hasWeapon = tributeInState.inventory.some(item => item.type === "weapon" && item.uses > 0)
+          let additionalVictims: Tribute[] = []
+          let victimsKilled = 1
+
+          if (hasWeapon && Math.random() > 0.7) { // 30% chance for multi-kill with weapon
+            // Find additional victims who are "close" (same district as victim or allies)
+            const closeTributes = aliveTributes.filter(t =>
+              t.id !== tribute.id &&
+              t.id !== victim.id &&
+              t.isAlive &&
+              !processedTributes.has(t.id) &&
+              (t.district === victim.district || // Same district
+               tributeInState.allies.some(ally => ally.allyId === t.id) || // Killer's ally
+               victimInState.allies.some(ally => ally.allyId === t.id)) // Victim's ally
+            )
+
+            // Kill up to 2 additional victims (3 total max)
+            const numAdditional = Math.min(closeTributes.length, Math.floor(Math.random() * 3))
+            additionalVictims = closeTributes.slice(0, numAdditional)
+            victimsKilled += additionalVictims.length
+          }
+
+          // Kill primary victim
           victimInState.isAlive = false
-          tributeInState.kills += 1
+          tributeInState.kills += victimsKilled
 
-          // REVENGE SYSTEM: Since victim dies, we can't add grudges to them,
-          // but we could track this for narrative purposes or future revenge mechanics
+          // Kill additional victims
+          additionalVictims.forEach(victim => {
+            const victimState = newState.tributes.find(t => t.id === victim.id)
+            if (victimState) {
+              victimState.isAlive = false
+            }
+          })
 
-          // Replace all occurrences of placeholders (using global replace)
+          // Use weapon if available (reduce uses)
+          if (hasWeapon) {
+            const weapon = tributeInState.inventory.find(item => item.type === "weapon" && item.uses > 0)
+            if (weapon) {
+              weapon.uses -= 1
+              if (weapon.uses <= 0) {
+                tributeInState.inventory = tributeInState.inventory.filter(item => item.id !== weapon.id)
+              }
+            }
+          }
+
+          // Create event description
           let description = template
-            .replace(/{killer}/g, tribute.name)
-            .replace(/{victim}/g, victim.name)
+          let involvedTributes = [tribute.id, victim.id]
+
+          if (additionalVictims.length > 0) {
+            // Multi-kill event - need special template or modify existing one
+            const victimNames = [victim.name, ...additionalVictims.map(v => v.name)].join(", ")
+            description = `${tribute.name} embosca a ${victimNames} con su arma. El cañón suena ${victimsKilled} vez${victimsKilled > 1 ? 'es' : ''}.`
+            involvedTributes.push(...additionalVictims.map(v => v.id))
+          } else {
+            // Single kill - use template
+            description = description
+              .replace(/{killer}/g, tribute.name)
+              .replace(/{victim}/g, victim.name)
+          }
 
           newEvents.push({
             id: generateUUID(),
@@ -299,12 +351,14 @@ export function simulateTurn(state: GameState): GameState {
             phase: newState.currentPhase,
             type: "kill",
             description,
-            involvedTributes: [tribute.id, victim.id],
+            involvedTributes,
             timestamp: new Date(),
           })
 
+          // Mark all victims as processed
           processedTributes.add(tribute.id)
           processedTributes.add(victim.id)
+          additionalVictims.forEach(v => processedTributes.add(v.id))
         }
       }
       }
@@ -533,9 +587,9 @@ export function simulateTurn(state: GameState): GameState {
         }
       }
     } else if (eventCategory.type === "romance" && template.includes("{tribute2}")) {
-      // ROMANCE SYSTEM: Create romantic connections between tributes
+      // ROMANCE SYSTEM: Create romantic connections between opposite genders only
       let validPartners = aliveTributes.filter(
-        t => t.id !== tribute.id && !processedTributes.has(t.id)
+        t => t.id !== tribute.id && !processedTributes.has(t.id) && t.gender !== tribute.gender
       )
 
       // Prioritize existing allies for romantic connections
@@ -594,7 +648,6 @@ export function simulateTurn(state: GameState): GameState {
         processedTributes.add(tribute.id)
         processedTributes.add(partner.id)
       }
-    } else if (eventCategory.type === "exploration") {
     } else if (eventCategory.type === "exploration") {
       // Exploration events can provide benefits
       if (Math.random() > 0.6) {

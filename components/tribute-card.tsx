@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { createPortal } from "react-dom"
-import { Skull, Heart, AlertTriangle, Shield, Angry, Target, Sword, Cross, Apple, Shield as ShieldIcon, Wrench } from "lucide-react"
+import { Skull, Heart, AlertTriangle, Shield, Angry, Target, Sword, Cross, Apple, Shield as ShieldIcon, Wrench, User, Users as UsersIcon } from "lucide-react"
 import type { Tribute } from "@/lib/game-types"
 import { cn } from "@/lib/utils"
 
@@ -145,6 +145,13 @@ export function TributeCard({ tribute, allTributes = [], onNameChange, onUseItem
                   {statusIcon[tribute.status]}
                   <span className="text-[10px] text-muted-foreground">
                     {Math.round((tribute.health / 60) * 100)}%
+                  </span>
+                  <span className={cn(
+                    "text-[10px] flex items-center gap-0.5",
+                    tribute.gender === "male" ? "text-blue-400" : "text-pink-400"
+                  )}>
+                    {tribute.gender === "male" ? <User className="w-2.5 h-2.5" /> : <UsersIcon className="w-2.5 h-2.5" />}
+                    {tribute.gender === "male" ? "M" : "F"}
                   </span>
                   {tribute.kills > 0 && (
                     <span className="text-[10px] text-accent flex items-center gap-0.5">

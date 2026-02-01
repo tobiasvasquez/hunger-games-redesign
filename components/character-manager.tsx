@@ -5,13 +5,13 @@ import React from "react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Trash2, Users, Save, X } from "lucide-react"
+import { Plus, Trash2, Users, Save, X, User, Users as UsersIcon } from "lucide-react"
 import type { Character } from "@/lib/game-types"
 import { cn } from "@/lib/utils"
 
 interface CharacterManagerProps {
   characters: Character[]
-  onAddCharacter: (name: string, imageUrl?: string) => void
+  onAddCharacter: (name: string, gender: "male" | "female", imageUrl?: string) => void
   onRemoveCharacter: (id: string) => void
   onClose: () => void
   isLoading?: boolean
@@ -25,12 +25,14 @@ export function CharacterManager({
   isLoading
 }: CharacterManagerProps) {
   const [newName, setNewName] = useState("")
+  const [newGender, setNewGender] = useState<"male" | "female">("male")
   const [newImageUrl, setNewImageUrl] = useState("")
 
   const handleAdd = () => {
     if (newName.trim()) {
-      onAddCharacter(newName.trim(), newImageUrl.trim() || undefined)
+      onAddCharacter(newName.trim(), newGender, newImageUrl.trim() || undefined)
       setNewName("")
+      setNewGender("male")
       setNewImageUrl("")
     }
   }
@@ -67,29 +69,62 @@ export function CharacterManager({
           <p className="text-sm text-muted-foreground mb-3">
             Agrega personajes para usar en los juegos. Puedes crear los que necesites.
           </p>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Input
-              placeholder="Nombre del personaje"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className="flex-1"
-            />
-            <Input
-              placeholder="URL de imagen (opcional)"
-              value={newImageUrl}
-              onChange={(e) => setNewImageUrl(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className="flex-1"
-            />
-            <Button
-              onClick={handleAdd}
-              disabled={!newName.trim() || isLoading}
-              className="cursor-pointer bg-primary hover:bg-primary/90"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Agregar
-            </Button>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input
+                placeholder="Nombre del personaje"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="flex-1"
+              />
+              <Input
+                placeholder="URL de imagen (opcional)"
+                value={newImageUrl}
+                onChange={(e) => setNewImageUrl(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="flex-1"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">Género:</span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setNewGender("male")}
+                  className={cn(
+                    "px-3 py-1.5 text-xs font-medium rounded-md border transition-all cursor-pointer",
+                    newGender === "male"
+                      ? "bg-blue-500 text-white border-blue-500 hover:bg-blue-600"
+                      : "bg-transparent text-blue-600 border-blue-300 hover:bg-blue-50"
+                  )}
+                >
+                  <User className="w-3 h-3 mr-1 inline" />
+                  Masculino
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewGender("female")}
+                  className={cn(
+                    "px-3 py-1.5 text-xs font-medium rounded-md border transition-all cursor-pointer",
+                    newGender === "female"
+                      ? "bg-pink-500 text-white border-pink-500 hover:bg-pink-600"
+                      : "bg-transparent text-pink-600 border-pink-300 hover:bg-pink-50"
+                  )}
+                >
+                  <UsersIcon className="w-3 h-3 mr-1 inline" />
+                  Femenino
+                </button>
+              </div>
+              <Button
+                onClick={handleAdd}
+                disabled={!newName.trim() || isLoading}
+                className="cursor-pointer bg-primary hover:bg-primary/90 ml-auto"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Agregar
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -124,10 +159,19 @@ export function CharacterManager({
                     )}
                   </div>
                   
-                  {/* Name */}
-                  <span className="flex-1 font-medium text-sm text-foreground truncate">
-                    {char.name}
-                  </span>
+                  {/* Name and Gender */}
+                  <div className="flex-1 min-w-0">
+                    <span className="font-medium text-sm text-foreground truncate block">
+                      {char.name}
+                    </span>
+                    <span className={cn(
+                      "text-xs flex items-center gap-1 mt-0.5",
+                      char.gender === "male" ? "text-blue-400" : "text-pink-400"
+                    )}>
+                      {char.gender === "male" ? <User className="w-2.5 h-2.5" /> : <UsersIcon className="w-2.5 h-2.5" />}
+                      {char.gender === "male" ? "Masculino" : "Femenino"}
+                    </span>
+                  </div>
                   
                   {/* Delete */}
                   <Button
