@@ -14,6 +14,36 @@ function generateUUID(): string {
   return Math.random().toString(36).substring(2, 15)
 }
 
+function playRockPaperScissors(tribute1: Tribute, tribute2: Tribute): { winner: Tribute; description: string } {
+  const choices = ["piedra", "papel", "tijeras"]
+  const choice1 = getRandomElement(choices)
+  const choice2 = getRandomElement(choices)
+
+  // Determine winner
+  let winner: Tribute
+  let result: string
+
+  if (choice1 === choice2) {
+    // Tie - randomly choose winner for drama
+    winner = Math.random() > 0.5 ? tribute1 : tribute2
+    result = `empate entre ${choice1} y ${choice2}`
+  } else if (
+    (choice1 === "piedra" && choice2 === "tijeras") ||
+    (choice1 === "papel" && choice2 === "piedra") ||
+    (choice1 === "tijeras" && choice2 === "papel")
+  ) {
+    winner = tribute1
+    result = `${choice1} vence a ${choice2}`
+  } else {
+    winner = tribute2
+    result = `${choice2} vence a ${choice1}`
+  }
+
+  const description = `${tribute1.name} juega ${choice1}, ${tribute2.name} juega ${choice2}. ${result}. ¡${winner.name} gana los Juegos del Hambre!`
+
+  return { winner, description }
+}
+
 // Available sponsor items
 const SPONSOR_ITEMS: InventoryItem[] = [
   // Weapons
@@ -195,10 +225,39 @@ export function initializeGameWithCharacters(
 export function simulateTurn(state: GameState): GameState {
   const newState = { ...state }
   const aliveTributes = newState.tributes.filter(t => t.isAlive)
-  
+
   if (aliveTributes.length <= 1) {
     newState.isGameOver = true
     newState.winner = aliveTributes[0] || null
+    return newState
+  }
+
+  // Check for final showdown when only 2 tributes remain
+  if (aliveTributes.length === 2) {
+    const [tribute1, tribute2] = aliveTributes
+    const { winner, description } = playRockPaperScissors(tribute1, tribute2)
+
+    // Mark the loser as dead
+    const loser = winner.id === tribute1.id ? tribute2 : tribute1
+    const loserInState = newState.tributes.find(t => t.id === loser.id)
+    if (loserInState) {
+      loserInState.isAlive = false
+    }
+
+    // Create final event
+    const finalEvent: GameEvent = {
+      id: generateUUID(),
+      turn: newState.currentTurn,
+      phase: newState.currentPhase,
+      type: "final",
+      description,
+      involvedTributes: [tribute1.id, tribute2.id],
+      timestamp: new Date(),
+    }
+
+    newState.events = [...newState.events, finalEvent]
+    newState.isGameOver = true
+    newState.winner = winner
     return newState
   }
 

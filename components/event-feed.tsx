@@ -3,7 +3,7 @@
 import React from "react"
 
 import { useRef, useEffect } from "react"
-import { Skull, Gift, Home, AlertTriangle, Users, Zap, PersonStanding, Sun, Moon, MapPin, Shield, UserX, Heart } from "lucide-react"
+import { Skull, Gift, Home, AlertTriangle, Users, Zap, PersonStanding, Sun, Moon, MapPin, Shield, UserX, Heart, Trophy } from "lucide-react"
 import type { GameEvent } from "@/lib/game-types"
 import { cn } from "@/lib/utils"
 
@@ -26,6 +26,7 @@ const eventIcons: Record<GameEvent["type"], React.ReactNode> = {
   theft: <Shield className="w-3.5 h-3.5 text-yellow-500" />,
   exploration: <MapPin className="w-3.5 h-3.5 text-blue-400" />,
   romance: <Heart className="w-3.5 h-3.5 text-pink-500" />,
+  final: <Trophy className="w-3.5 h-3.5 text-yellow-400" />,
 }
 
 const eventColors: Record<GameEvent["type"], string> = {
@@ -41,6 +42,7 @@ const eventColors: Record<GameEvent["type"], string> = {
   theft: "border-l-yellow-500 bg-yellow-500/5",
   exploration: "border-l-blue-400 bg-blue-400/5",
   romance: "border-l-pink-500 bg-pink-500/5",
+  final: "border-l-yellow-400 bg-yellow-400/5",
 }
 
 export function EventFeed({ events, currentTurn, currentPhase }: EventFeedProps) {
